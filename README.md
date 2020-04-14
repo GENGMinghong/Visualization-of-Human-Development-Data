@@ -35,7 +35,7 @@ There are also some aspects can be improved in this project. In the Human Develo
 
 1.https://wid.world/data/
 
-2.[https://www.weforum.org/agenda/2019/03/surprising-stats-about-gender-inequality/ surprising-stats-about-gender-inequality]
+2.https://www.weforum.org/agenda/2019/03/surprising-stats-about-gender-inequality/ surprising-stats-about-gender-inequality
 
 3.https://www.tandfonline.com/doi/full/10.1080/10852352.2019.1627079
 
