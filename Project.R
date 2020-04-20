@@ -34,3 +34,5 @@ data_HDI = rename(data_HDI, "HDI_rank2018" = "HDI rank...1",
 HDI_Country <-ggplot(data_HDI, aes(x=reorder(Country,-`Human development index (HDI)`),y=`Human development index (HDI)`))+
   geom_bar(stat="identity",color='skyblue',fill='steelblue')+
   theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+HDI_Country 
