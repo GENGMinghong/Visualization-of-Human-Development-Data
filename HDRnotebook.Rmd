@@ -1,0 +1,38 @@
+---
+title: "HDRnotebook"
+author: "GENG Minghong"
+date: "Last Updated: `r Sys.Date()`"
+output: html_document
+---
+
+# 1. Load Data and Data Preparation
+The data of this project can be accessed here: 
+http://hdr.undp.org/en/data
+Done beofre 4.17
+```{r Introduction, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE}
+# echo : the result
+# eval : run or not. Remember if here you set it as false, the code here won't run. So don't put `library( )` here
+# fig.height is about the graph of this chunk.
+packages = c('corrplot','ggpubr','plotly','tidyverse','readxl')
+
+for(p in packages){library
+if (!require(p,character.only = T)){
+  install.packages(p)
+  }
+  library(p,character.only = T)
+}  
+```
+
+```{r}
+data1=read_excel('data/Table1.HDI&Components.xlsx')
+```
+
+# 2. Exploratory Data Analysis
+
+
+
+
+# 3. Data Visulisation Design
+some thoughts here.
+
+# 4. shiny
