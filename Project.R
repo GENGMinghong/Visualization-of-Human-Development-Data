@@ -1,5 +1,21 @@
 # load packages
-packages=c('corrplot','ggpubr','plotly','tidyverse','shiny','readxl','Hmisc','sf', 'tmap', 'tidyverse')
+packages=c('corrplot',
+           'ggpubr',
+           'plotly',
+           'tidyverse',
+           'readxl',
+           'Hmisc', 
+           'geojsonio',
+           'sf', 
+           'tmap',
+           'spData',
+           'maptools',
+           'shiny',
+           'shinythemes',
+           'leaflet',
+           'RColorBrewer',
+           'rnaturalearth',
+           'rnaturalearthdata')
 
 for(p in packages){library
   if (!require(p,character.only = T)){
@@ -8,31 +24,139 @@ for(p in packages){library
   library(p,character.only = T)
 }  
 
-# load data
-data_HDI=read_excel('data/Table1.HDI&Components.xlsx')
-# Change the data type
-data_HDI %>% rename('HDI'='Human development index (HDI)')
-data_HDI$`HDI rank...1` = as.numeric(data_HDI$`HDI rank...1`)
-data_HDI$`Human development index (HDI)` = as.numeric(data_HDI$`Human development index (HDI)`)
-data_HDI$`Life expectancy at birth` = as.numeric(data_HDI$`Life expectancy at birth`)
-data_HDI$`Expected years of schooling` = as.numeric(data_HDI$`Expected years of schooling`)
-data_HDI$`Mean years of schooling` = as.numeric(data_HDI$`Mean years of schooling`)
-data_HDI$`Gross national income (GNI) per capita` = as.numeric(data_HDI$`Gross national income (GNI) per capita`)
-data_HDI$`GNI per capita rank minus HDI rank` = as.numeric(data_HDI$`GNI per capita rank minus HDI rank`)
-data_HDI$`HDI rank...9` = as.numeric(data_HDI$`HDI rank...9`)
+# and next
+# try to draw a map
+# here, argument country can change the country 
+# also we can choose the continent to see.
+#world <- ne_countries(scale = 'medium', returnclass = "sf")
+worldcountry = geojson_read("data/50m.geojson", what = "sp")
+worldcountry<-subset(worldcountry, NAME_LONG!="Antarctica")
+country_geoms = read_csv("data/country_geoms.csv")
 
-# rename columns
-data_HDI %>% 
-  rename(
-    "HDI rank...1" = "HDI_rank2018",
-    "HDI rank...9" = "HDI_rank2017")
+HDI = read_csv('data/data_cleaned/HDI/0_HDI.csv') 
+HDI_selected = subset(HDI,Year==2018)
+worldCountry_HDI <- merge(worldcountry, HDI_selected, by.x = "NAME_LONG", by.y = "Country")
 
-data_HDI = rename(data_HDI, "HDI_rank2018" = "HDI rank...1",
-                 "HDI_rank2017" = "HDI rank...9")
+#plot_map <- worldcountry
+# create plotting parameters for map
+#bins = c(0,1,10,50,100,500,1000,Inf)
+#HDI_pal <- colorBin("Blues", domain = worldCountry_HDI$"2018")#, bins = bins)
+HDI_pal <- colorQuantile("Blues", domain =  worldCountry_HDI$HDI)
+#plot_map <- worldcountry[worldcountry$ADM0_A3 %in% cv_large_countries$alpha3, ]
 
-# r
-HDI_Country <-ggplot(data_HDI, aes(x=reorder(Country,-`Human development index (HDI)`),y=`Human development index (HDI)`))+
-  geom_bar(stat="identity",color='skyblue',fill='steelblue')+
-  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+labels <- sprintf(
+  "<strong>%s</strong><br/> 
+   Index: %g",
+  worldCountry_HDI$NAME_LONG, worldCountry_HDI$HDI
+) %>% lapply(htmltools::HTML)
 
-HDI_Country 
+popup = sprintf(
+  "<strong>%g</strong><br/>",worldCountry_HDI$HDI
+) %>% lapply(htmltools::HTML)
+
+
+
+# weight: the thickness of the boundary lines in pixels
+# color: the color of the polygons
+# label: the information to appear on hover
+# highlightOptions: options to highlight a polygon on hover
+
+#++++++++++++++++++  WORLD MAP AREA  ++++++++++++++++++++++++++
+basemap = leaflet(worldCountry_HDI) %>% 
+  addProviderTiles(providers$CartoDB.Positron) %>%
+  addPolygons(#stroke = FALSE, # use to turn off the broad 
+              smoothFactor = 0.2, 
+              fillColor = ~HDI_pal(worldCountry_HDI$HDI), # 是轮廓内的颜色
+              fillOpacity = 0.7,
+              color="white", #stroke color
+              weight = 1, # stroke width in pixels
+              highlight = highlightOptions(
+                #weight = 5,
+                color = "#666",
+                #dashArray = "",
+                fillOpacity = 0.7,
+                bringToFront = TRUE #Whether the shape should be brought to front on hover
+                ),
+              label = labels,
+              labelOptions = labelOptions(
+                style = list("font-weight" = "normal", padding = "3px 8px"),
+                textsize = "15px",
+                direction = "auto"),
+              popup = popup,
+              popupOptions = popupOptions(maxWidth ="100%", closeOnClick = TRUE),
+              group = "Human Development Index"
+              ) %>%
+  addLayersControl(
+    position = "bottomright",
+    baseGroups = c("Human Development Index","Gender Development Index"),
+    #overlayGroups = c("Human Development Index","Gender Development Index"),
+    options = layersControlOptions(collapsed = FALSE)) %>%
+  hideGroup(c("Human Development Index","Gender Development Index"))  %>%
+  addLegend("bottomright", pal = HDI_pal, values = ~worldCountry_HDI$HDI,title = "<small>Index Value</small>")
+
+basemap
+  #addPolygons(
+    #smoothFactor = 0.2,
+    #fillOpacity = 1,
+    #fillColor = ~HDI_pal(worldCountry_HDI$"2018"),
+    #weight = 0.5,
+    #opacity = 0.1,
+    #color = "white",
+    #dashArray = "1",
+    #fillOpacity = 0.7,
+    #highlight = highlightOptions(
+     # weight = 0.5,
+      #color = "#666",
+      #dashArray = "—",
+      #fillOpacity = 0.5,
+      #bringToFront = TRUE),
+    #label = labels,
+    #labelOptions = labelOptions(
+      #style = list("font-weight" = "normal", padding = "3px 8px"),
+      #textsize = "15px",
+      #direction = "auto")) %>%
+  
+
+
+#=================================================================
+states <- 
+  geojson_read( 
+    x = "https://raw.githubusercontent.com/PublicaMundi/MappingAPI/master/data/geojson/us-states.json"
+    , what = "list"
+  )
+class(states)
+
+
+bins <- c(0, 10, 20, 50, 100, 200, 500, 1000, Inf)
+pal <- colorBin("YlOrRd", domain = states$density, bins = bins)
+
+labels <- sprintf(
+  "<strong>%s</strong><br/>%g people / mi<sup>2</sup>",
+  states$name, states$density
+) %>% lapply(htmltools::HTML)
+
+leaflet(states) %>%
+  setView(-96, 37.8, 4) %>%
+  addProviderTiles("MapBox", options = providerTileOptions(
+    id = "mapbox.light",
+    accessToken = Sys.getenv('MAPBOX_ACCESS_TOKEN'))) %>%
+  addPolygons(
+    fillColor = ~pal(density),
+    weight = 2,
+    opacity = 1,
+    color = "white",
+    dashArray = "3",
+    fillOpacity = 0.7,
+    highlight = highlightOptions(
+      weight = 5,
+      color = "#666",
+      dashArray = "",
+      fillOpacity = 0.7,
+      bringToFront = TRUE),
+    label = labels,
+    labelOptions = labelOptions(
+      style = list("font-weight" = "normal", padding = "3px 8px"),
+      textsize = "15px",
+      direction = "auto")) %>%
+  addLegend(pal = pal, values = ~density, opacity = 0.7, title = NULL,
+            position = "bottomright")
