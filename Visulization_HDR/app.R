@@ -1,4 +1,21 @@
-packages=c('shiny','shinythemes','leaflet','tidyverse','RColorBrewer')
+# load required packages
+packages=c(#'corrplot',
+           'ggpubr',
+           'plotly',
+           'tidyverse',
+           'readxl',
+           'Hmisc', 
+           'geojsonio',
+           'sf', 
+           'tmap',
+           #'spData',
+           'maptools',
+           'shiny',
+           'shinythemes',
+           'leaflet',
+           'RColorBrewer')
+           #'rnaturalearth',
+           #'rnaturalearthdata'
 
 for(p in packages){library
     if (!require(p,character.only = T)){
@@ -7,16 +24,69 @@ for(p in packages){library
     library(p,character.only = T)
 }  
 
-# Define UI for application that draws a histogram
+# Import Data
+worldcountry = geojson_read("data/50m.geojson", what = "sp")
+HDI = read_csv('data/data_cleaned/HDI/0_HDI.csv') 
+#worldcountry<-subset(worldcountry, NAME_LONG!="Antarctica")
+
+HDI_selected = subset(HDI,Year==2018)
+worldCountry_HDI <- merge(worldcountry, HDI_selected, by.x = "NAME_LONG", by.y = "Country")
+
+# color scheme
+HDI_pal <- colorQuantile("Blues", domain =  worldCountry_HDI$HDI)
+#plot_map <- worldcountry[worldcountry$ADM0_A3 %in% cv_large_countries$alpha3, ]
+
+# set label content
+labels <- sprintf(
+    "<strong>%s</strong><br/> 
+   Index: %g",
+    worldCountry_HDI$NAME_LONG, worldCountry_HDI$HDI
+) %>% lapply(htmltools::HTML)
+
+# set popup
+popup = sprintf(
+    "<strong>%g</strong><br/>",worldCountry_HDI$HDI
+) %>% lapply(htmltools::HTML)
+
+
+# create basemap
+basemap = leaflet(worldcountry) %>% 
+    addTiles() %>% 
+    addProviderTiles(providers$CartoDB.Positron)
+basemap
+
+
+
+
+#######    DATA PRECESSING    #########
+# Extract Year from Table
+# 现在已经弃用，使用固定的时间范围 
+# min_year = min(HDI$Year)
+# max_year = 2018#max(HDI$year)
+
 ui <- bootstrapPage(
     #shinythemes::themeSelector(),
     tags$head("Human Development Report"),
-    navbarPage(theme = shinytheme("flatly"), collapsible = TRUE,
-               "Human Development Report", id="nav",
+    navbarPage(theme = shinytheme("flatly"), collapsible = TRUE, "Human Development Report", id="nav",
                tabPanel("World mapper",
-                        div(leafletOutput("mymap"),
-                            p(),
-                            actionButton("recalc", "New points")
+                        div(class="outer",
+                            tags$head(includeCSS("styles.css")), #使悬浮边栏变透明
+                            leafletOutput("mymap",width = "100%", height = "100%"), # output World Map
+                            absolutePanel(id = "controls", class = "panel panel-default",
+                                          top = 180, left = 20, width = 250, fixed=TRUE,
+                                          draggable = FALSE, height = "auto", # draggable 控制能否移动
+                                          sliderInput(inputId = "Year",
+                                                      label = h5("Select Year"),
+                                                      min = 1990,#as.Date(cv_min_date,"%Y-%m-%d"),
+                                                      max = 2018,#as.Date(current_date,"%Y-%m-%d"),
+                                                      value = 2018, #as.Date(current_date),
+                                                      timeFormat = '%Y',
+                                                      #timeFormat = "%d %b", 
+                                                      #animate=animationOptions(interval = 3000, loop = FALSE))),
+                                          )),
+                            # add a school logo
+                            #absolutePanel(id = "logo", class = "card", bottom = 20, left = 60, width = 80, fixed=TRUE, draggable = FALSE, height = "auto",
+                                          #tags$a(href='https://www.lshtm.ac.uk', tags$img(src='lshtm_dark.png',height='40',width='80')))
                             )),
                tabPanel("HDI"),
                tabPanel("Gender Development Index"),
@@ -30,88 +100,38 @@ ui <- bootstrapPage(
 )
 
 # Define server logic required to draw a histogram
-server <- function(input, output,session) {
-    points <- eventReactive(input$recalc, {
-        cbind(rnorm(40) * 2 + 13, rnorm(40) + 48)
-    }, ignoreNULL = FALSE)
-    
-    output$mymap <- renderLeaflet({
-        leaflet() %>%
-            addProviderTiles(providers$Stamen.TonerLite,
-                             options = providerTileOptions(noWrap = TRUE)
-            ) %>%
-            addMarkers(data = points())
+server <- function(input,output,session) {
+    reactive_db = reactive({
+        worldcountry %>%
+            merge(filter(HDI,Year==input$Year),by.x = "NAME_LONG", by.y = "Country") # here we can change the input of data
+            
     })
+    #reactive_polygons = reactive({
+     #   reactive_db
+        #worldcountry[worldcountry$ADM0_A3 %in% reactive_db_large()$alpha3, ]
+    #})
+   
+    output$mymap <- renderLeaflet({ 
+        basemap
+    })
+    
+    observeEvent(input$Year, {
+        leafletProxy("mymap") %>% 
+            addPolygons(data = reactive_db(), 
+                        stroke = FALSE, 
+                        smoothFactor = 0.1, 
+                        fillOpacity = 0.15, 
+                        fillColor = ~HDI_pal(reactive_db()$HDI),
+                        ) %>%
+            addLegend("bottomright", pal = HDI_pal, values = ~reactive_db()$HDI,title = "<small>Index Value</small>")
+        
+                  #group = "2019-COVID (cumulative)",
+                  #label = sprintf("<strong>%s (cumulative)</strong><br/>Confirmed COVID cases: %g<br/>Deaths: %d<br/>Recovered: %d<br/>Cases per 100,000: %g", reactive_db_large()$country, reactive_db_large()$cases, reactive_db_large()$deaths, reactive_db_large()$recovered, reactive_db_large()$per100k) %>% lapply(htmltools::HTML),
+                  #labelOptions = labelOptions(
+                   #            style = list("font-weight" = "normal", padding = "3px 8px", "color" = covid_col),
+                    #          textsize = "15px", direction = "auto")
+                      })
 }
 
 # Run the application 
 shinyApp(ui = ui, server = server)
-
-
-
-ui <- bootstrapPage(
-    tags$style(type = "text/css", "html, body {width:100%;height:100%}"),
-    leafletOutput("map", width = "100%", height = "100%"),
-    absolutePanel(top = 10, right = 10,
-                  sliderInput("range", "Magnitudes", min(quakes$mag), max(quakes$mag),
-                              value = range(quakes$mag), step = 0.1
-                  ),
-                  selectInput("colors", "Color Scheme",
-                              rownames(subset(brewer.pal.info, category %in% c("seq", "div")))
-                  ),
-                  checkboxInput("legend", "Show legend", TRUE)
-    )
-)
-
-server <- function(input, output, session) {
-    
-    # Reactive expression for the data subsetted to what the user selected
-    filteredData <- reactive({
-        quakes[quakes$mag >= input$range[1] & quakes$mag <= input$range[2],]
-    })
-    
-    # This reactive expression represents the palette function,
-    # which changes as the user makes selections in UI.
-    colorpal <- reactive({
-        colorNumeric(input$colors, quakes$mag)
-    })
-    
-    output$map <- renderLeaflet({
-        # Use leaflet() here, and only include aspects of the map that
-        # won't need to change dynamically (at least, not unless the
-        # entire map is being torn down and recreated).
-        leaflet(quakes) %>% addTiles() %>%
-            fitBounds(~min(long), ~min(lat), ~max(long), ~max(lat))
-    })
-    
-    # Incremental changes to the map (in this case, replacing the
-    # circles when a new color is chosen) should be performed in
-    # an observer. Each independent set of things that can change
-    # should be managed in its own observer.
-    observe({
-        pal <- colorpal()
-        
-        leafletProxy("map", data = filteredData()) %>%
-            clearShapes() %>%
-            addCircles(radius = ~10^mag/10, weight = 1, color = "#777777",
-                       fillColor = ~pal(mag), fillOpacity = 0.7, popup = ~paste(mag)
-            )
-    })
-    
-    # Use a separate observer to recreate the legend as needed.
-    observe({
-        proxy <- leafletProxy("map", data = quakes)
-        
-        # Remove any existing legend, and only if the legend is
-        # enabled, create a new one.
-        proxy %>% clearControls()
-        if (input$legend) {
-            pal <- colorpal()
-            proxy %>% addLegend(position = "bottomright",
-                                pal = pal, values = ~mag
-            )
-        }
-    })
-}
-
-shinyApp(ui, server)
