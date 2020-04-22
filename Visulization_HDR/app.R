@@ -1,6 +1,5 @@
 # load required packages
-packages=c(#'corrplot',
-           'ggpubr',
+packages=c('ggpubr',
            'plotly',
            'tidyverse',
            'readxl',
@@ -8,15 +7,13 @@ packages=c(#'corrplot',
            'geojsonio',
            'sf', 
            'tmap',
-           #'spData',
            'maptools',
            'shiny',
            'shinythemes',
            'leaflet',
+           'rgdal',
            'RColorBrewer')
-           #'rnaturalearth',
-           #'rnaturalearthdata'
-
+        
 for(p in packages){library
     if (!require(p,character.only = T)){
         install.packages(p)
@@ -26,14 +23,17 @@ for(p in packages){library
 
 # Import Data
 worldcountry = geojson_read("data/50m.geojson", what = "sp")
-HDI = read_csv('data/data_cleaned/HDI/0_HDI.csv') 
+worldcountry@data$NAME_LONG[worldcountry@data$NAME_LONG %in% c('Taiwan','Macao')] <- 'China'
+
+all_data = read_csv('data/data_cleaned/All_data.csv')
 #worldcountry<-subset(worldcountry, NAME_LONG!="Antarctica")
 
-HDI_selected = subset(HDI,Year==2018)
-worldCountry_HDI <- merge(worldcountry, HDI_selected, by.x = "NAME_LONG", by.y = "Country")
+#HDI_selected = subset(HDI,Year==2018)
+#worldCountry_HDI <- merge(worldcountry, HDI_selected, by.x = "NAME_LONG", by.y = "Country")
+
 
 # color scheme
-HDI_pal <- colorQuantile("Blues", domain =  worldCountry_HDI$HDI)
+#HDI_pal <- colorQuantile("Blues", domain =  worldCountry_HDI$HDI)
 #plot_map <- worldcountry[worldcountry$ADM0_A3 %in% cv_large_countries$alpha3, ]
 
 # set label content
@@ -73,21 +73,30 @@ ui <- bootstrapPage(
                             tags$head(includeCSS("styles.css")), #使悬浮边栏变透明
                             leafletOutput("mymap",width = "100%", height = "100%"), # output World Map
                             absolutePanel(id = "controls", class = "panel panel-default",
-                                          top = 180, left = 20, width = 250, fixed=TRUE,
+                                          top = 80, left = 20, width = 250, fixed=TRUE,
                                           draggable = FALSE, height = "auto", # draggable 控制能否移动
+                                          
+                                          h3(textOutput("HDI_text"), align = "right"),
+                                          
+                                          #h4(textOutput("reactive_death_count"), align = "right"),
+                                          #span(h4(textOutput("reactive_recovered_count"), align = "right"), style="color:#006d2c"),
+                                          #span(h4(textOutput("reactive_active_count"), align = "right"), style="color:#cc4c02"),
+                                          #h6(textOutput("clean_date_reactive"), align = "right"),
+                                          #h6(textOutput("reactive_country_count"), align = "right"),
+                                          #tags$i(h6("Updated once daily. For more regular updates, refer to: ", tags$a(href="https://gisanddata.maps.arcgis.com/apps/opsdashboard/index.html#/bda7594740fd40299423467b48e9ecf6", "Johns Hopkins COVID-19 dashboard."))),
+                                          #tags$i(h6("Reported cases are subject to significant variation in testing capacity between countries.")),
+                                          plotOutput("distribution_HDI", height="130px", width="100%"),
+                                          plotOutput("distribution_GDI", height="130px", width="100%"),
                                           sliderInput(inputId = "Year",
                                                       label = h5("Select Year"),
-                                                      min = 1990,#as.Date(cv_min_date,"%Y-%m-%d"),
-                                                      max = 2018,#as.Date(current_date,"%Y-%m-%d"),
-                                                      value = 2018, #as.Date(current_date),
+                                                      min = 1990,
+                                                      max = 2018,
+                                                      value = 2018,
                                                       timeFormat = '%Y',
-                                                      #timeFormat = "%d %b", 
-                                                      #animate=animationOptions(interval = 3000, loop = FALSE))),
-                                          )),
-                            # add a school logo
-                            #absolutePanel(id = "logo", class = "card", bottom = 20, left = 60, width = 80, fixed=TRUE, draggable = FALSE, height = "auto",
-                                          #tags$a(href='https://www.lshtm.ac.uk', tags$img(src='lshtm_dark.png',height='40',width='80')))
-                            )),
+                                                      #animate=animationOptions(interval = 3000, loop = FALSE),
+                                          ),
+                                          selectInput('Countries', NULL, choices = sort(as.character(all_data$Country) %>% unique)),
+                                          ))),
                tabPanel("HDI"),
                tabPanel("Gender Development Index"),
                tabPanel("Poverty Index"),
@@ -101,37 +110,142 @@ ui <- bootstrapPage(
 
 # Define server logic required to draw a histogram
 server <- function(input,output,session) {
+    
     reactive_db = reactive({
         worldcountry %>%
-            merge(filter(HDI,Year==input$Year),by.x = "NAME_LONG", by.y = "Country") # here we can change the input of data
-            
+            merge(filter(all_data,Year==input$Year),by.x = "NAME_LONG", by.y = "Country") # here we can change the input of data
     })
-    #reactive_polygons = reactive({
-     #   reactive_db
-        #worldcountry[worldcountry$ADM0_A3 %in% reactive_db_large()$alpha3, ]
-    #})
-   
+    
     output$mymap <- renderLeaflet({ 
         basemap
     })
     
+    # this can be used in later graphs
+    #observe({
+    #    mapdata <- subset(worldcountry, NAME_LONG == input$Countries)
+    #    rgn <- mapdata@bbox %>% as.vector()
+    #    leafletProxy("mymap", session) %>% clearShapes() %>%
+    #        flyToBounds(rgn[1], rgn[2], rgn[3], rgn[4])
+    #})
     observeEvent(input$Year, {
         leafletProxy("mymap") %>% 
             addPolygons(data = reactive_db(), 
-                        stroke = FALSE, 
-                        smoothFactor = 0.1, 
-                        fillOpacity = 0.15, 
-                        fillColor = ~HDI_pal(reactive_db()$HDI),
+                        smoothFactor = 0.2, 
+                        fillColor = ~colorQuantile("Blues",domain = reactive_db()$HDI)(reactive_db()$HDI), # 是轮廓内的颜色
+                        fillOpacity = 0.7,
+                        color="white", #stroke color
+                        weight = 1, # stroke width in pixels
+                        highlight = highlightOptions(
+                            #weight = 5,
+                            color = "#666",
+                            #dashArray = "",
+                            fillOpacity = 0.7,
+                            bringToFront = TRUE #Whether the shape should be brought to front on hover
+                        ),
+                        label = sprintf(
+                            "<strong>%s</strong><br/>HDI Index: %g",
+                            reactive_db()$NAME_LONG, reactive_db()$HDI
+                        ) %>% lapply(htmltools::HTML),
+                        labelOptions = labelOptions(
+                            style = list("font-weight" = "normal", padding = "3px 8px"),
+                            textsize = "15px",
+                            direction = "auto"),
+                        group = "Human Development Index",
+                        #popup = popup,
+                        #popupOptions = popupOptions(maxWidth ="100%", closeOnClick = TRUE),
+                       
                         ) %>%
-            addLegend("bottomright", pal = HDI_pal, values = ~reactive_db()$HDI,title = "<small>Index Value</small>")
-        
-                  #group = "2019-COVID (cumulative)",
-                  #label = sprintf("<strong>%s (cumulative)</strong><br/>Confirmed COVID cases: %g<br/>Deaths: %d<br/>Recovered: %d<br/>Cases per 100,000: %g", reactive_db_large()$country, reactive_db_large()$cases, reactive_db_large()$deaths, reactive_db_large()$recovered, reactive_db_large()$per100k) %>% lapply(htmltools::HTML),
-                  #labelOptions = labelOptions(
-                   #            style = list("font-weight" = "normal", padding = "3px 8px", "color" = covid_col),
-                    #          textsize = "15px", direction = "auto")
+            addPolygons(data = reactive_db(), 
+                        smoothFactor = 0.2, 
+                        fillColor = ~colorQuantile("Greens",domain = reactive_db()$Gender_Development_Index
+                                                   )(reactive_db()$Gender_Development_Index), # 是轮廓内的颜色
+                        fillOpacity = 0.7,
+                        color="white", #stroke color
+                        weight = 1, # stroke width in pixels
+                        highlight = highlightOptions(
+                            #weight = 5,
+                            color = "#666",
+                            #dashArray = "",
+                            fillOpacity = 0.7,
+                            bringToFront = TRUE #Whether the shape should be brought to front on hover
+                        ),
+                        label = sprintf(
+                            "<strong>%s</strong><br/>GDI Index: %g",
+                            reactive_db()$NAME_LONG, reactive_db()$Gender_Development_Index
+                        ) %>% lapply(htmltools::HTML),
+                        labelOptions = labelOptions(
+                            style = list("font-weight" = "normal", padding = "3px 8px"),
+                            textsize = "15px",
+                            direction = "auto"),
+                        group = "Gender Development Index") %>%
+                        #popup = popup,
+                        #popupOptions = popupOptions(maxWidth ="100%", closeOnClick = TRUE)
+            addLayersControl(
+                position = "bottomright",
+                baseGroups = c("Human Development Index","Gender Development Index"),
+                #overlayGroups = c("Human Development Index","Gender Development Index"),
+                options = layersControlOptions(collapsed = FALSE))
                       })
+    output$distribution_HDI = renderPlot({
+        all_data %>%
+            filter(Year==input$Year) %>% 
+            ggplot(aes(x = reorder(Country,-HDI), 
+                       y = HDI,
+                       #fill = Region #color = Country,
+            ))+
+            geom_bar(position="stack", stat="identity",fill = "#cc4c02")+#fill = "#cc4c02")+
+            ylab("") + 
+            xlab("Country")+
+            ggtitle("Human Development Index")+
+            #scale_x_categorical(breaks=seq(0, 10, 1))
+            theme_bw() + 
+            #scale_fill_manual(values=c("#cc4c02")) +
+            scale_y_continuous(expand = c(0, 0))+
+            #scale_y_continuous(labels = function(l) {trans = l / 1000; paste0(trans, "K")}) +
+            theme(legend.title = element_blank(), 
+                  axis.text.x = element_blank(),
+                  axis.ticks = element_blank(),
+                  legend.position = "", 
+                  plot.title = element_text(size=10), 
+                  plot.margin = margin(5, 12, 5, 5))
+    })
+    
+    output$distribution_GDI = renderPlot({
+        all_data %>%
+            filter(Year==input$Year) %>% 
+            ggplot(aes(x = reorder(Country,-Gender_Development_Index), 
+                       y = Gender_Development_Index,
+                       #fill = Region#color = Country,
+            ))+
+            geom_bar(position="stack", stat="identity",fill = "#cc4c02")+#fill = "#cc4c02")+
+            ylab("") +
+            xlab("Country")+
+            ggtitle("Gender Development Index")+
+            #scale_x_categorical(breaks=seq(0, 10, 1))
+            theme_bw() + 
+            #scale_fill_manual(values=c("#cc4c02")) +
+            scale_y_continuous(expand = c(0, 0))+
+            #scale_y_continuous(labels = function(l) {trans = l / 1000; paste0(trans, "K")}) +
+            theme(legend.title = element_blank(), 
+                  axis.text.x = element_blank(),
+                  axis.ticks = element_blank(),
+                  legend.position = "", 
+                  plot.title = element_text(size=10), 
+                  plot.margin = margin(5, 12, 5, 5))
+    })
+    
+    output$HDI_text <- renderText({
+        paste0("In ", input$Year, count(distinct(all_data$Level == "LOW HUMAN DEVELOPMENT",Country))
+               prettyNum(sum(reactive_db()$HDI), big.mark=","), " cases")
+    })
 }
+
 
 # Run the application 
 shinyApp(ui = ui, server = server)
+
+all_data %>%
+    filter(Level == "LOW HUMAN DEVELOPMENT",Year == 2018) %>%
+    count(Country)
+
+count(all_data$Level == "LOW HUMAN DEVELOPMENT",Country)
