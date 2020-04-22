@@ -1,0 +1,242 @@
+---
+title: "try"
+author: "JI XIAOJUN"
+date: "4/16/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+packages = c('tidyverse','reshape','ggplot2','tidyr','gganimate','stringr','plotly','RColorBrewer','adegenet','NAM','snow','doSNOW','parallel','circular','d3heatmap','plotly','viridis','hrbrthemes','grid','gtable')
+for (p in packages){
+  if(!require(p,character.only = T)){
+    install.packages(p)
+  }
+  library(p, character.only = T)
+}
+```
+
+```{r}
+HDI_trend <- read.csv('data/Human Development Index (HDI).csv', header = TRUE,check.names = FALSE)
+pivot_HDI <- melt(HDI_trend, id = c(1:2), measure = c(3:31), variable_name = 'Year')
+#gather(data, key = "Country", value = "Year", ..., na.rm = FALSE,convert = FALSE, factor_key = FALSE)
+names(pivot_HDI) <- c('Country','Level','Year','HDI')
+head(pivot_HDI)
+ggplot(pivot_HDI, aes(x = Year, y = HDI, group = Country, col = Level)) + geom_line()
+```
+
+```{r} 
+## range of HDI change
+HDI_trend <- read.csv('data/Human Development Index (HDI).csv', header = TRUE, check.names = FALSE)
+head(HDI_trend)
+HDI_trend  %>% 
+  plot_ly(color = I("gray80"), height = 2000) %>% 
+  add_segments( x = ~HDI_trend$"1990", xend = ~HDI_trend$"2018", 
+                y = ~Country, yend = ~Country, showlegend= FALSE) %>% 
+  add_markers(x = ~HDI_trend$"1990", y = ~Country, name = "HDI:1990", color = I("pink")) %>% 
+  add_markers(x = ~HDI_trend$"2018", y = ~Country, name = "HDI:2018", color = I("blue")) %>% 
+  layout(title = "Journey of All Countries in HDI", 
+         xaxis = list(title = "Human Development Index", 
+                      tickfont = list(color = "#e6e6e6")), 
+         yaxis = list(title = "Countries", tickfont = list(color = "#e6e6e6")), 
+         plot_bgcolor = "#808080", paper_bgcolor ="#808080")
+# should sort by 1990 HDI
+```
+
+```{r}
+HDI_trend <- read.csv('data/Human Development Index (HDI)1995.csv', header = TRUE, check.names = FALSE)
+pivot_HDI <- melt(HDI_trend, id = c(1:2), measure = c(3:22), variable_name = 'Year')
+names(pivot_HDI) <- c('Country','Level','Year','HDI')
+print(pivot_HDI)
+
+GII_trend <- read.csv('data/Gender Inequality Index (GII).csv',header = TRUE,check.names = FALSE)
+head(GII_trend)
+pivot_GII <- melt(GII_trend, id = c(1:2), measure = c(3:14), variable_name = 'Year', na.rm = TRUE)
+names(pivot_GII) <- c('Rank','Country','Year','GII')
+print(pivot_GII)
+data <- merge(pivot_HDI, pivot_GII, by = c("Country","Year"))
+head(data)
+data$Year <- as.numeric(data$Year)
+ggplot(data, aes(x= GII, y= HDI, col = Level)) +
+  geom_point(stat='identity', position='identity') +
+  geom_smooth(method = lm, size = 0.5, se = FALSE, aes(group = Year))#+transition_time(Year)
+## it is possible to use fullrange = TRUE in geom_smooth, which is used to predict
+
+#just show, but the chart is wrong.a
+```
+
+```{r}
+data <- read.csv('data/Human Development Index (HDI).csv', header = TRUE, check.names = FALSE)
+head(data)
+data <- as.matrix(data[,2:30])
+head(data)
+heatmap.circular(data)
+
+```
+
+```{r}
+data <- HDI_trend %>% 
+  arrange(Country) %>%
+  mutate(Country = factor(Country, Country))
+print(data)
+# Matrix format
+heat <- data[,2:30]
+rownames(heat) <- data[,1]
+#mat <- mat %>% dplyr::select(Country)
+heat <- as.matrix(heat)
+head(mat)
+# Heatmap
+#d3heatmap(mat, scale="column", dendrogram = "none", width="800px", height="80Opx", colors = "Blues")
+install.packages("heatmaply")
+library(heatmaply)
+p <- heatmaply(heat, 
+        dendrogram = "none",
+        xlab = "", ylab = "", 
+        main = "",
+        scale = "column",
+        margins = c(60,100,40,20),
+        grid_color = "white",
+        grid_width = 0.00001,
+        titleX = FALSE,
+        hide_colorbar = FALSE,
+        branches_lwd = 0.1,
+        label_names = c("Country", "Feature:", "Value"),
+        fontsize_row = 5, fontsize_col = 5,
+        labCol = colnames(heat),
+        labRow = rownames(heat),
+        heatmap_layers = theme(axis.line=element_blank())
+        )
+
+show(p)
+```
+
+
+
+
+
+
+```{r}
+# https://stackoverflow.com/questions/41500000/how-to-add-another-legend-to-circular-heat-map-in-r
+
+head(pivot_HDI)
+#pivot_HDI <- ddply(pivot_HDI, .(variable), transform, value = scale(value))
+#print(pivot_HDI)
+# Convert the factor levels (variables) to numeric + quanity to determine    size   of hole.
+pivot_HDI$hole = as.numeric(pivot_HDI$Year) + 15
+print(pivot_HDI)
+# Labels and breaks need to be added with scale_y_discrete.
+y_labels = levels(pivot_HDI$Year)
+y_breaks = seq_along(y_labels) + 15
+print(y_breaks)
+
+HDI.labs <- subset(pivot_HDI, Year==levels(pivot_HDI$Year)[nlevels(pivot_HDI$Year)])
+
+HDI.labs <- HDI.labs[order(HDI.labs$Country),]
+print(HDI.labs)
+HDI.labs$angle <- seq(from=(360/nrow(HDI.labs))/1.5, to=(1.5* (360/nrow(HDI.labs)))-360, length.out=nrow(HDI.labs))+80
+HDI.labs$hjust <- 0
+HDI.labs$hjust[which(HDI.labs$angle < -90)] <- 1
+HDI.labs$angle[which(HDI.labs$angle < -90)] <- (180+HDI.labs$angle)[which(HDI.labs$angle < -90)]
+
+
+
+```
+
+```{r}
+HDI_matrix <- as.matrix(HDI_trend)
+#mat = matrix(rnorm(100*10), nrow = 10, ncol = 100)
+print(HDI_matrix)
+col_fun = colorRamp2(c(-2, 0, 2), c("green", "black", "red"))
+factors = rep(letters[1:2], times = c(30, 70))
+mat_list = list(a = mat[, factors == "a"],
+                b = mat[, factors == "b"])
+dend_list = list(a = as.dendrogram(hclust(dist(t(mat_list[["a"]])))),
+                 b = as.dendrogram(hclust(dist(t(mat_list[["b"]])))))
+circos.par(cell.padding = c(0, 0, 0, 0), gap.degree = 5)
+circos.initialize(factors, xlim = cbind(c(0, 0), table(factors)))
+circos.track(ylim = c(0, 10), bg.border = NA, panel.fun = function(x, y) {
+    sector.index = CELL_META$sector.index
+    m = mat_list[[sector.index]]
+    dend = dend_list[[sector.index]]
+
+    m2 = m[, order.dendrogram(dend)]
+    col_mat = col_fun(m2)
+    nr = nrow(m2)
+    nc = ncol(m2)
+    for(i in 1:nr) {
+        circos.rect(1:nc - 1, rep(nr - i, nc), 
+            1:nc, rep(nr - i + 1, nc), 
+            border = col_mat[i, ], col = col_mat[i, ])
+    }
+})
+max_height = max(sapply(dend_list, function(x) attr(x, "height")))
+circos.track(ylim = c(0, max_height), bg.border = NA, track.height = 0.3, 
+    panel.fun = function(x, y) {
+
+        sector.index = get.cell.meta.data("sector.index")
+        dend = dend_list[[sector.index]]
+        circos.dendrogram(dend, max_height = max_height)
+})
+circos.clear()
+
+
+```
+
+
+
+```{r}
+#https://www.r-graph-gallery.com/321-introduction-to-interactive-sankey-diagram-2.html
+
+## I am considering whether we can use sankey diagram to compare the proportion of different education level of different continent. (This code is just a sample.)
+
+
+# A connection data frame is a list of flows with intensity for each flow
+links <- data.frame(
+  source=c("group_A","group_A", "group_B", "group_C", "group_C", "group_E"), 
+  target=c("group_C","group_D", "group_E", "group_F", "group_G", "group_H"), 
+  value=c(2,3, 2, 3, 1, 3)
+  )
+print(links)
+
+# From these flows we need to create a node data frame: it lists every entities involved in the flow
+nodes <- data.frame(
+  name=c(as.character(links$source), 
+  as.character(links$target)) %>% unique()
+)
+print(nodes)
+# With networkD3, connection must be provided using id, not using real name like in the links dataframe.. So we need to reformat it.
+links$IDsource <- match(links$source, nodes$name)-1 
+links$IDtarget <- match(links$target, nodes$name)-1
+print(links) 
+# Make the Network
+p <- sankeyNetwork(Links = links, Nodes = nodes,
+              Source = "IDsource", Target = "IDtarget",
+              Value = "value", NodeID = "name", 
+              sinksRight=FALSE)
+p
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
