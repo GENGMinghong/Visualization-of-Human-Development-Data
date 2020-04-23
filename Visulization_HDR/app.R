@@ -49,8 +49,8 @@ basemap = leaflet(worldcountry) %>%
 #names(all_data)[4]="Country"
 names(all_data)[1]='Continent'
 choice <- colnames(all_data)[1:4]
-head(all_data)
-print(choice)
+#head(all_data)
+#print(choice)
 
 
 
@@ -97,7 +97,19 @@ ui <- bootstrapPage(
                                                       #animate=animationOptions(interval = 3000, loop = FALSE),
                                           ),
                                           selectInput('Countries', NULL, choices = sort(as.character(all_data$Country) %>% unique)),
-                                          ))),
+                                          ),
+                            absolutePanel(top = 80, left = "auto", right = 20, bottom = "auto",
+                                          width = 250, height = "auto",draggable = FALSE,
+                                          selectInput(inputId = "select_map_of_a_country",
+                                                      label = h5("Country of Scope:"), 
+                                                      choices = c("All country" = "All",
+                                                                  sort(as.character(all_data$Country) %>% unique))),
+                                          #uiOutput("secondselection")
+                                          leafletOutput("map_on_the_right",width="240",height = "200")
+                                          ),
+                                          #style = "opacity: 0.65; z-index: 10;", ## z-index modification
+                                          
+                            )),
                tabPanel("HDI",
                             sidebarLayout(
                                 sidebarPanel(top = 80, left = 20,# width = 250,
@@ -130,6 +142,8 @@ ui <- bootstrapPage(
 # Define server logic required to draw a histogram
 server <- function(input,output,session) {
     
+    #________Mapper Page____________________________________________________________
+    #______Writer: GENG Minghong____________________________________________________
     reactive_db = reactive({
         worldcountry %>%
             merge(filter(all_data,Year==input$Year),by.x = "NAME_LONG", by.y = "Country") # here we can change the input of data
@@ -197,13 +211,38 @@ server <- function(input,output,session) {
                             textsize = "15px",
                             direction = "auto"),
                         group = "Gender Development Index") %>%
+            # add gender inequality index 
+            addPolygons(data = reactive_db(), 
+                        smoothFactor = 0.2, 
+                        fillColor = ~colorQuantile("Oranges",domain = reactive_db()$Gender_Inequality_Index
+                        )(reactive_db()$Gender_Inequality_Index), # 是轮廓内的颜色
+                        fillOpacity = 0.7,
+                        color="white", #stroke color
+                        weight = 1, # stroke width in pixels
+                        highlight = highlightOptions(
+                            #weight = 5,
+                            color = "#666",
+                            #dashArray = "",
+                            fillOpacity = 0.7,
+                            bringToFront = TRUE #Whether the shape should be brought to front on hover
+                        ),
+                        label = sprintf(
+                            "<strong>%s</strong><br/>GII Index: %g",
+                            reactive_db()$NAME_LONG, reactive_db()$Gender_Inequality_Index
+                        ) %>% lapply(htmltools::HTML),
+                        labelOptions = labelOptions(
+                            style = list("font-weight" = "normal", padding = "3px 8px"),
+                            textsize = "15px",
+                            direction = "auto"),
+                        group = "Gender Equality Index") %>%
                         #popup = popup,
                         #popupOptions = popupOptions(maxWidth ="100%", closeOnClick = TRUE)
             addLayersControl(
                 position = "bottomright",
-                baseGroups = c("Human Development Index","Gender Development Index"),
-                #overlayGroups = c("Human Development Index","Gender Development Index"),
-                options = layersControlOptions(collapsed = FALSE))
+                baseGroups = c("Human Development Index","Gender Development Index","Gender Inequality Index"),# 只可以选择一个的group
+                #overlayGroups = c("Human Development Index","Gender Development Index"), # 可以堆叠的group
+                options = layersControlOptions(collapsed = FALSE)) %>%
+            hideGroup(c("Gender Development Index","Gender Inequality Index"))
                       })
     output$distribution_HDI = renderPlot({
         all_data %>%
@@ -257,7 +296,51 @@ server <- function(input,output,session) {
         paste0("In ", input$Year, "xx countries are high development countries")
     })
     
-    ## filter data
+    output$map_on_the_right <- renderLeaflet({ 
+        basemap
+    })
+    
+    # Draw a map of one country of interest in the right floting panel
+    reactive_db_onecountry = reactive({
+        if(input$select_map_of_a_country=='All')
+            worldcountry %>%
+            merge(filter(all_data,Year==input$Year),by.x = "NAME_LONG", by.y = "Country")
+        else
+            worldcountry %>%
+            merge(filter(all_data,Year==input$Year, Country ==input$select_map_of_a_country),by.x = "NAME_LONG", by.y = "Country") # here we can change the input of data
+    })
+    
+    #observeEvent(input$select_map_of_a_country, {
+    #    leafletProxy("map_on_the_right") %>% 
+    #        addPolygons(data =  reactive_db_onecountry(), 
+                        #smoothFactor = 0.2, 
+                        #fillColor = ~colorQuantile("Purples",domain = reactive_db()$HDI)(reactive_db()$HDI), # 是轮廓内的颜色
+                        #fillOpacity = 0.7,
+                        #color="white", #stroke color
+                        #weight = 1, # stroke width in pixels
+                        #highlight = highlightOptions(
+                        #    #weight = 5,
+                        #    color = "#666",
+                        #    #dashArray = "",
+                        #    fillOpacity = 0.7,
+                        #    bringToFront = TRUE #Whether the shape should be brought to front on hover
+                        #),
+                        #label = sprintf(
+                        #    "<strong>%s</strong><br/>HDI Index: %g",
+                        #    reactive_db()$NAME_LONG, reactive_db()$HDI
+                        #) %>% lapply(htmltools::HTML),
+                        #labelOptions = labelOptions(
+                        #    style = list("font-weight" = "normal", padding = "3px 8px"),
+                        #    textsize = "15px",
+                        #    direction = "auto"),
+                        #group = "Human Development Index",
+                        #popup = popup,
+                        #popupOptions = popupOptions(maxWidth ="100%", closeOnClick = TRUE),
+    
+    #______________HDI Page__________________________________________________
+    #_______ Writer: JI Xiao Jun ____________________________________________
+    
+    ## filter data6
     extract_data <- reactive({
         all_data %>%
             filter(Country == input$country,
@@ -321,3 +404,4 @@ server <- function(input,output,session) {
 
 # Run the application 
 shinyApp(ui = ui, server = server)
+
