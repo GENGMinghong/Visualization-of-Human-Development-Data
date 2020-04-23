@@ -24,36 +24,35 @@ for(p in packages){library
 # Import Data
 worldcountry = geojson_read("data/50m.geojson", what = "sp")
 worldcountry@data$NAME_LONG[worldcountry@data$NAME_LONG %in% c('Taiwan','Macao')] <- 'China'
-
 all_data = read_csv('data/data_cleaned/All_data.csv')
-#worldcountry<-subset(worldcountry, NAME_LONG!="Antarctica")
 
-#HDI_selected = subset(HDI,Year==2018)
-#worldCountry_HDI <- merge(worldcountry, HDI_selected, by.x = "NAME_LONG", by.y = "Country")
-
-
-# color scheme
-#HDI_pal <- colorQuantile("Blues", domain =  worldCountry_HDI$HDI)
-#plot_map <- worldcountry[worldcountry$ADM0_A3 %in% cv_large_countries$alpha3, ]
 
 # set label content
-labels <- sprintf(
-    "<strong>%s</strong><br/> 
-   Index: %g",
-    worldCountry_HDI$NAME_LONG, worldCountry_HDI$HDI
-) %>% lapply(htmltools::HTML)
+#labels <- sprintf(
+#    "<strong>%s</strong><br/> 
+#   Index: %g",
+#    worldCountry_HDI$NAME_LONG, worldCountry_HDI$HDI
+#) %>% lapply(htmltools::HTML)
 
-# set popup
-popup = sprintf(
-    "<strong>%g</strong><br/>",worldCountry_HDI$HDI
-) %>% lapply(htmltools::HTML)
+# set popups
+#popup = sprintf(
+#    "<strong>%g</strong><br/>",worldCountry_HDI$HDI
+#) %>% lapply(htmltools::HTML)
 
 
 # create basemap
 basemap = leaflet(worldcountry) %>% 
     addTiles() %>% 
     addProviderTiles(providers$CartoDB.Positron)
-basemap
+
+# Prepare for HDI page
+#names(all_data)[4]="Country"
+names(all_data)[1]='Continent'
+choice <- colnames(all_data)[1:4]
+head(all_data)
+print(choice)
+
+
 
 
 
@@ -64,9 +63,11 @@ basemap
 # min_year = min(HDI$Year)
 # max_year = 2018#max(HDI$year)
 
+
+##### SHINT APP #####
 ui <- bootstrapPage(
     #shinythemes::themeSelector(),
-    tags$head("Human Development Report"),
+    tags$head(includeHTML("gtag.html")),
     navbarPage(theme = shinytheme("flatly"), collapsible = TRUE, "Human Development Report", id="nav",
                tabPanel("World mapper",
                         div(class="outer",
@@ -97,7 +98,25 @@ ui <- bootstrapPage(
                                           ),
                                           selectInput('Countries', NULL, choices = sort(as.character(all_data$Country) %>% unique)),
                                           ))),
-               tabPanel("HDI"),
+               tabPanel("HDI",
+                            sidebarLayout(
+                                sidebarPanel(top = 80, left = 20,# width = 250,
+                                             width = 3,
+                                             selectInput('level','Choose a Level', choices = choice),
+                                             selectInput("country","Choose countries",choices = unique(all_data$Country), multiple = TRUE),
+                                             sliderInput("year",'choose year', min = 1990, max = 2018, value = c(1990,2018),step = 1),
+                                             actionButton("Search", "Search"),
+                                             actionButton("Help","About")
+                                ),
+                                mainPanel(
+                                    fluidRow(column(plotly::plotlyOutput(outputId = "LEtrend"),width = 4, height = 3),
+                                             column(plotly::plotlyOutput(outputId = "MStrend"),width = 4),
+                                             column(plotly::plotlyOutput(outputId = "EStrend"),width = 4)),
+                                    fluidRow(column(plotly::plotlyOutput(outputId = "GNItrend"),width = 4),
+                                             column(plotly::plotlyOutput(outputId = "HDItrend"),width = 4))
+                                )
+                            )
+                        ),
                tabPanel("Gender Development Index"),
                tabPanel("Poverty Index"),
                tabPanel("Population"),
@@ -235,17 +254,70 @@ server <- function(input,output,session) {
     })
     
     output$HDI_text <- renderText({
-        paste0("In ", input$Year, count(distinct(all_data$Level == "LOW HUMAN DEVELOPMENT",Country))
-               prettyNum(sum(reactive_db()$HDI), big.mark=","), " cases")
+        paste0("In ", input$Year, "xx countries are high development countries")
     })
+    
+    ## filter data
+    extract_data <- reactive({
+        all_data %>%
+            filter(Country == input$country,
+                   Year >= input$year[1],
+                   Year <= input$year[2])
+    })
+    
+    ## HDI trend plot
+    reactive_HDI <- eventReactive(input$Search,{
+        extract_data()%>%
+            plot_ly(x = ~Year, y=~HDI, color = ~Country, hoverinfo = "text",
+                    text = ~paste(input$country, HDI)) %>%
+            add_lines()%>%
+            layout(showlegend=TRUE)
+    })
+    
+    output$HDItrend <- renderPlotly({reactive_HDI()})
+    
+    ## Life Expectancy trend plot
+    reactive_LifeExpectancy <- eventReactive(input$Search,{
+        extract_data()%>%
+            plot_ly(x = ~Year, y=~Life_Expectancy, color = ~Country, hoverinfo = "text",
+                    text = ~paste(input$country, Life_Expectancy)) %>%
+            add_lines()%>%
+            layout(showlegend=TRUE)
+    })
+    output$LEtrend <- renderPlotly({reactive_LifeExpectancy()})
+    
+    ## Expected Schooling trend plot
+    reactive_ExpectedSchooling <- eventReactive(input$Search,{
+        extract_data()%>%
+            plot_ly(x = ~Year, y=~Expected_Years_of_Schooling, color = ~Country, hoverinfo = "text",
+                    text = ~paste(input$country, Expected_Years_of_Schooling)) %>%
+            add_lines()%>%
+            layout(showlegend=TRUE)
+    })
+    output$EStrend <- renderPlotly({reactive_ExpectedSchooling()})
+    
+    ## Mean Schooling trend plot
+    reactive_MeanSchooling <- eventReactive(input$Search,{
+        extract_data()%>%
+            plot_ly(x = ~Year, y=~Mean_Years_of_Schooling, color = ~Country, hoverinfo = "text",
+                    text = ~paste(input$country, Mean_Years_of_Schooling)) %>%
+            add_lines()%>%
+            layout(showlegend=TRUE)
+    })
+    output$MStrend <- renderPlotly({reactive_MeanSchooling()})
+    
+    ## GNI per capita trend plot
+    reactive_GNI <- eventReactive(input$Search,{
+        extract_data()%>%
+            plot_ly(x = ~Year, y=~GNI_per_capita, color = ~Country, hoverinfo = "text",
+                    text = ~paste(input$country, GNI_per_capita)) %>%
+            add_lines()%>%
+            layout(showlegend=TRUE)
+    })
+    output$GNItrend <- renderPlotly({reactive_GNI()})
+    
 }
 
 
 # Run the application 
 shinyApp(ui = ui, server = server)
-
-all_data %>%
-    filter(Level == "LOW HUMAN DEVELOPMENT",Year == 2018) %>%
-    count(Country)
-
-count(all_data$Level == "LOW HUMAN DEVELOPMENT",Country)
