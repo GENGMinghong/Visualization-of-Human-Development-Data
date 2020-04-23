@@ -1,20 +1,13 @@
 library(shiny)
 library(WDI)
-
 library(ggvis)
-```
 
-```{r}
-library(WDI)
 indicator2 <- WDI(country="all", indicator=c("NY.GDP.PCAP.CD", "SP.POP.TOTL", "SP.DYN.LE00.IN"), start=2011, end=2018, extra = TRUE)
 drops <- c("iso2c","iso3c", "capital", "longitude", "latitude", "income", "lending")
 indicator2 <- indicator2[ , !(names(indicator2) %in% drops)]
 colnames(indicator2) <- c("country","year", "GDP_per_capita", "population_total", "life_expectancy", "region")
 indicator2 <- indicator2[-c(1, 2, 3, 4, 5, 6, 19, 66, 67, 159, 178, 179, 180, 181, 182, 201, 202, 203, 204, 205, 206, 207, 225, 226, 227, 228, 236, 237, 238, 239, 240, 241, 242, 243, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 262, 263), ]
 
-```
-
-```{r}
 ui <- fluidPage(
   sliderInput(inputId = "Year",
               label = h5("Select Year"),
@@ -27,9 +20,7 @@ ui <- fluidPage(
   ),
   plotOutput("graph")
 )
-```
 
-```{r}
 server <- function(input, output) {
   
   output$graph = renderPlot({
@@ -49,12 +40,8 @@ server <- function(input, output) {
 }
 
 
-```
-
-```{r}
 shinyApp(ui = ui, server = server)
-```
-=======
+
 # load packages
 packages=c('corrplot',
            'ggpubr',
@@ -87,12 +74,41 @@ for(p in packages){library
 # also we can choose the continent to see.
 #world <- ne_countries(scale = 'medium', returnclass = "sf")
 worldcountry = geojson_read("data/50m.geojson", what = "sp")
-worldcountry<-subset(worldcountry, NAME_LONG!="Antarctica")
-country_geoms = read_csv("data/country_geoms.csv")
+#worldcountry<-subset(worldcountry, NAME_LONG!="Antarctica")
+#country_geoms = read_csv("data/country_geoms.csv")
 
 HDI = read_csv('data/data_cleaned/HDI/0_HDI.csv') 
 HDI_selected = subset(HDI,Year==2018)
 worldCountry_HDI <- merge(worldcountry, HDI_selected, by.x = "NAME_LONG", by.y = "Country")
+
+##### HDI Distribution   #####
+distribution_HDI = worldcountry %>%
+    merge(filter(HDI,Year==2018),by.x = "NAME_LONG", by.y = "Country")
+
+distribution_HDI$HDI
+
+ggplot(filter(HDI,Year==2018),aes(x = reorder(Country,-HDI), 
+                                  y = HDI,#color = Country,#fill = region
+                                  ))+
+  geom_bar(position="stack", stat="identity",fill = "#cc4c02")+
+  ylab("HDI INDEX") + 
+  #scale_x_categorical(breaks=seq(0, 10, 1))
+  theme_bw() + 
+  scale_fill_manual(values=c("#cc4c02")) +
+  #scale_y_continuous(labels = function(l) {trans = l / 1000; paste0(trans, "K")}) +
+  scale_y_continuous(expand = c(0, 0))+
+  theme(legend.title = element_blank(), 
+        axis.text.x = element_blank(),
+        axis.ticks = element_blank(),
+        legend.position = "", 
+        plot.title = element_text(size=10), 
+        plot.margin = margin(5, 12, 5, 5))
+        
+  
+  
+
+
+
 
 #plot_map <- worldcountry
 # create plotting parameters for map
@@ -216,4 +232,13 @@ leaflet(states) %>%
       textsize = "15px",
       direction = "auto")) %>%
   addLegend(pal = pal, values = ~density, opacity = 0.7, title = NULL,
-            position = "bottomright"）
+            position = "bottomright")
+#========================================================================================================
+# count the number of countries in different level of development of HDI
+temp=all_data %>%
+  filter(Year == 2018) %>%
+  group_by(Level) %>%
+  summarise(
+    HDI = mean(HDI),
+    number_of_distinct_orders = length(unique(Country))) %>%
+  ungroup()
