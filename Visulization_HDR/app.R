@@ -109,6 +109,7 @@ ui <- bootstrapPage(
                                                       timeFormat = '%Y',
                                                       #animate=animationOptions(interval = 3000, loop = FALSE),
                                           ),
+                                          #selectInput('indicator', "Indicator", choices = colnames(all_data[, 6:ncol(all_data)])),
                                           #selectInput('Countries', NULL, choices = sort(as.character(all_data$Country) %>% unique)),
                                           ),
                             absolutePanel(id = "controls", class = "panel panel-default",
@@ -129,7 +130,6 @@ ui <- bootstrapPage(
                                           h6(textOutput("country_GDI")),
                                           h6(textOutput("country_GII"))
                                           ),
-                            
                                           #style = "opacity: 0.65; z-index: 10;", ## z-index modification
                             )),
                tabPanel("Indexes",
@@ -164,7 +164,7 @@ ui <- bootstrapPage(
                                 )
                             )
                         ),
-               tabPanel("Heatmap",
+               tabPanel("Correlation",
                         sidebarLayout(
                             sidebarPanel(top = 80, left = 20, width = 3,
                                          selectInput('heatcountry','Choose Countries', choices = unique(all_data$Country), multiple = TRUE),
@@ -185,18 +185,15 @@ ui <- bootstrapPage(
                                          selectInput('dumbellindex','Choose Indexes', choices = indexchoice)),
                             mainPanel(plotlyOutput('dumbbell'))
                         )),
-               tabPanel("Population"),
-               tabPanel("Health"),
-               tabPanel("Education"),
+               tabPanel("ZhuHonglu"),
                tabPanel("Data",
                         numericInput("maxrows", "Rows to show", 25),
                         verbatimTextOutput("rawtable"),
                         downloadButton("downloadCsv", "Download as CSV"),tags$br(),tags$br(),
-                        "Adapted from timeline data published by ", tags$a(href="https://github.com/CSSEGISandData/COVID-19/tree/master/csse_covid_19_data/csse_covid_19_time_series", 
-                                                                           "Johns Hopkins Center for Systems Science and Engineering.")
+                        "The dataset is downloaded from Human Development Report and cleaned by the team members.")
                ),
                tabPanel("About us")
-    )
+    
 )
 
 
@@ -209,7 +206,7 @@ server <- function(input,output,session) {
         worldcountry %>%
             merge(filter(all_data,Year==input$Year),by.x = "NAME_LONG", by.y = "Country") # here we can change the input of data
     })
-
+    
     output$mymap <- renderLeaflet({ 
         basemap
     })
@@ -218,7 +215,7 @@ server <- function(input,output,session) {
         leafletProxy("mymap") %>% 
             addPolygons(data = reactive_db(), 
                         smoothFactor = 0.2, 
-                        fillColor = ~colorQuantile("Blues",domain = reactive_db()$HDI)(reactive_db()$HDI), # æ˜¯è½®å»“å†…çš„é¢œè‰²
+                        fillColor = ~colorQuantile("Blues",domain = reactive_db()$HDI)(reactive_db()$HDI), # ÊÇÂÖÀªÄÚµÄÑÕÉ«
                         fillOpacity = 0.7,
                         color="white", #stroke color
                         weight = 1, # stroke width in pixels
@@ -240,12 +237,12 @@ server <- function(input,output,session) {
                         group = "Human Development Index",
                         #popup = popup,
                         #popupOptions = popupOptions(maxWidth ="100%", closeOnClick = TRUE),
-                       
-                        ) %>%
+                        
+            ) %>%
             addPolygons(data = reactive_db(), 
                         smoothFactor = 0.2, 
                         fillColor = ~colorQuantile("Blues",domain = reactive_db()$Gender_Development_Index
-                                                   )(reactive_db()$Gender_Development_Index), # æ˜¯è½®å»“å†…çš„é¢œè‰²
+                        )(reactive_db()$Gender_Development_Index), # ÊÇÂÖÀªÄÚµÄÑÕÉ«
                         fillOpacity = 0.7,
                         color="white", #stroke color
                         weight = 1, # stroke width in pixels
@@ -269,7 +266,7 @@ server <- function(input,output,session) {
             addPolygons(data = reactive_db(), 
                         smoothFactor = 0.2, 
                         fillColor = ~colorQuantile("Blues",domain = reactive_db()$Gender_Inequality_Index
-                        )(reactive_db()$Gender_Inequality_Index), # æ˜¯è½®å»“å†…çš„é¢œè‰²
+                        )(reactive_db()$Gender_Inequality_Index), # ÊÇÂÖÀªÄÚµÄÑÕÉ«
                         fillOpacity = 0.7,
                         color="white", #stroke color
                         weight = 1, # stroke width in pixels
@@ -289,19 +286,19 @@ server <- function(input,output,session) {
                             textsize = "15px",
                             direction = "auto"),
                         group = "Gender Equality Index") %>%
-                        #popup = popup,
-                        #popupOptions = popupOptions(maxWidth ="100%", closeOnClick = TRUE)
+            #popup = popup,
+            #popupOptions = popupOptions(maxWidth ="100%", closeOnClick = TRUE)
             addLayersControl(
                 position = "bottomright",
-                baseGroups = c("Human Development Index","Gender Development Index","Gender Inequality Index"),# åªå¯ä»¥é€‰æ‹©ä¸€ä¸ªçš„group
-                #overlayGroups = c("Human Development Index","Gender Development Index"), # å¯ä»¥å †å çš„group
+                baseGroups = c("Human Development Index","Gender Development Index","Gender Inequality Index"),# Ö»¿ÉÒÔÑ¡ÔñÒ»¸öµÄgroup
+                #overlayGroups = c("Human Development Index","Gender Development Index"), # ¿ÉÒÔ¶ÑµþµÄgroup
                 options = layersControlOptions(collapsed = FALSE)) %>%
             #addLegend(
             #    pal = ~colorQuantile("Blues",domain = reactive_db()$HDI, values = ~density, 
             #                         opacity = 0.7, title = NULL,
             #    position = "bottomright"
             hideGroup(c("Gender Development Index","Gender Inequality Index"))
-                      })
+    })
     output$distribution_HDI = renderPlot({
         all_data %>%
             filter(Year==input$Year) %>% 
@@ -400,11 +397,11 @@ server <- function(input,output,session) {
     
     observeEvent(input$select_map_of_a_country, {
         mapdata <- subset(worldcountry, NAME_LONG == input$select_map_of_a_country)
-            rgn <- mapdata@bbox %>% as.vector()
-            leafletProxy("map_on_the_right", session) %>% clearShapes() %>%
-                flyToBounds(rgn[1], rgn[2], rgn[3], rgn[4]) %>%
-                addPolygons(data = mapdata, fill = T, fillColor = 'gold', color = 'white')
-            })
+        rgn <- mapdata@bbox %>% as.vector()
+        leafletProxy("map_on_the_right", session) %>% clearShapes() %>%
+            flyToBounds(rgn[1], rgn[2], rgn[3], rgn[4]) %>%
+            addPolygons(data = mapdata, fill = T, fillColor = 'gold', color = 'white')
+    })
     # Right Panel Function 2: HDI, GDI and GII for a country in a certain year.
     # Build a dynamic data table
     reactive_all_data_one_country = reactive({
@@ -494,8 +491,8 @@ server <- function(input,output,session) {
     })
     output$GNItrend <- renderPlotly({reactive_GNI()})
     
-
-#_________Page : Data _______________________
+    
+    #_________Page : Data _______________________
     # output to download data
     output$downloadCsv <- downloadHandler(
         filename = function() {
@@ -518,15 +515,15 @@ server <- function(input,output,session) {
         heatdata <- all_data %>%
             filter(Year == input$heatyear,
                    Country == input$heatcountry)%>%
-                   heatdata[c(input$index)]
-    heatmap_matrix <- data.matrix(heatmap_data)
-    heatmaply(heatmap_matrix, 
-              scale = input$scale,
-              dist_method = input$distribution,
-              hclust_method = input$hcluster, 
-              seriate = input$seriate)
+            heatdata[c(input$index)]
+        heatmap_matrix <- data.matrix(heatmap_data)
+        heatmaply(heatmap_matrix, 
+                  scale = input$scale,
+                  dist_method = input$distribution,
+                  hclust_method = input$hcluster, 
+                  seriate = input$seriate)
     })
-
+    
     
     #______________Dumbbel Chart Page____________________________________________
     #_______ Writer: JI Xiaojun__________________________________________________ 
