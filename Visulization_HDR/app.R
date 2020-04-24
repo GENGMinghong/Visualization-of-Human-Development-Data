@@ -132,7 +132,20 @@ ui <- bootstrapPage(
                             
                                           #style = "opacity: 0.65; z-index: 10;", ## z-index modification
                             )),
-               tabPanel("Indexes"),
+               tabPanel("Indexes",
+                        sidebarLayout(
+                            sidebarPanel(top = 80, left = 20,# width = 250,
+                                         width = 3,
+                                         selectInput(inputId = 'GraphType','Graph Type:', choices = c("Heatmap",
+                                                                                                      "Line",
+                                                                                                      "Density",
+                                                                                                      "Dumbbell"))
+                            ),
+                            mainPanel(
+                                h6("To be added...")
+                            )
+               ),
+               ),
                tabPanel("HDI",
                             sidebarLayout(
                                 sidebarPanel(top = 80, left = 20,# width = 250,unique(all_data$Country)
@@ -175,7 +188,13 @@ ui <- bootstrapPage(
                tabPanel("Population"),
                tabPanel("Health"),
                tabPanel("Education"),
-               tabPanel("Data"),
+               tabPanel("Data",
+                        numericInput("maxrows", "Rows to show", 25),
+                        verbatimTextOutput("rawtable"),
+                        downloadButton("downloadCsv", "Download as CSV"),tags$br(),tags$br(),
+                        "Adapted from timeline data published by ", tags$a(href="https://github.com/CSSEGISandData/COVID-19/tree/master/csse_covid_19_data/csse_covid_19_time_series", 
+                                                                           "Johns Hopkins Center for Systems Science and Engineering.")
+               ),
                tabPanel("About us")
     )
 )
@@ -225,7 +244,7 @@ server <- function(input,output,session) {
                         ) %>%
             addPolygons(data = reactive_db(), 
                         smoothFactor = 0.2, 
-                        fillColor = ~colorQuantile("Greens",domain = reactive_db()$Gender_Development_Index
+                        fillColor = ~colorQuantile("Blues",domain = reactive_db()$Gender_Development_Index
                                                    )(reactive_db()$Gender_Development_Index), # 是轮廓内的颜色
                         fillOpacity = 0.7,
                         color="white", #stroke color
@@ -249,7 +268,7 @@ server <- function(input,output,session) {
             # add gender inequality index 
             addPolygons(data = reactive_db(), 
                         smoothFactor = 0.2, 
-                        fillColor = ~colorQuantile("Oranges",domain = reactive_db()$Gender_Inequality_Index
+                        fillColor = ~colorQuantile("Blues",domain = reactive_db()$Gender_Inequality_Index
                         )(reactive_db()$Gender_Inequality_Index), # 是轮廓内的颜色
                         fillOpacity = 0.7,
                         color="white", #stroke color
@@ -277,6 +296,10 @@ server <- function(input,output,session) {
                 baseGroups = c("Human Development Index","Gender Development Index","Gender Inequality Index"),# 只可以选择一个的group
                 #overlayGroups = c("Human Development Index","Gender Development Index"), # 可以堆叠的group
                 options = layersControlOptions(collapsed = FALSE)) %>%
+            #addLegend(
+            #    pal = ~colorQuantile("Blues",domain = reactive_db()$HDI, values = ~density, 
+            #                         opacity = 0.7, title = NULL,
+            #    position = "bottomright"
             hideGroup(c("Gender Development Index","Gender Inequality Index"))
                       })
     output$distribution_HDI = renderPlot({
@@ -472,6 +495,22 @@ server <- function(input,output,session) {
     output$GNItrend <- renderPlotly({reactive_GNI()})
     
 
+#_________Page : Data _______________________
+    # output to download data
+    output$downloadCsv <- downloadHandler(
+        filename = function() {
+            paste("Human_Development_Report", ".csv", sep="")
+        },
+        content = function(file) {
+            write.csv(all_data, file)
+        }
+    )
+    
+    output$rawtable <- renderPrint({
+        orig <- options(width = 1000)
+        print(tail(all_data, input$maxrows), row.names = FALSE)
+        options(orig)
+    })
     
     #______________Heatmap Page__________________________________________________
     #_______ Writer: JI Xiaojun__________________________________________________
