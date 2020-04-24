@@ -71,7 +71,7 @@ seriate_choice <- c("OLO", "mean", "none", "GW")
 
 #######    DATA PRECESSING    #########
 # Extract Year from Table
-# ÏÖÔÚÒÑ¾­ÆúÓÃ£¬Ê¹ÓÃ¹Ì¶¨µÄÊ±¼ä·¶Î§ 
+# çŽ°åœ¨å·²ç»å¼ƒç”¨ï¼Œä½¿ç”¨å›ºå®šçš„æ—¶é—´èŒƒå›´ 
 # min_year = min(HDI$Year)
 # max_year = 2018#max(HDI$year)
 
@@ -83,13 +83,13 @@ ui <- bootstrapPage(
     navbarPage(theme = shinytheme("flatly"), collapsible = TRUE, "Human Development Report", id="nav",
                tabPanel("World mapper",
                         div(class="outer",
-                            tags$head(includeCSS("styles.css")), #Ê¹Ðü¸¡±ßÀ¸±äÍ¸Ã÷
+                            tags$head(includeCSS("styles.css")), #ä½¿æ‚¬æµ®è¾¹æ å˜é€æ˜Ž
                             leafletOutput("mymap",width = "100%", height = "100%"), # output World Map
                             absolutePanel(id = "controls", class = "panel panel-default",
                                           top = 80, left = 20, width = 250, fixed=TRUE,
-                                          draggable = FALSE, height = "auto", # draggable ¿ØÖÆÄÜ·ñÒÆ¶¯
+                                          draggable = FALSE, height = "auto", # draggable æŽ§åˆ¶èƒ½å¦ç§»åŠ¨
                                           
-                                          h3(textOutput("HDI_text"), align = "right"),
+                                          h4(textOutput("HDI_text"), align = "right",style="color:#cc4c02"),
                                           
                                           #h4(textOutput("reactive_death_count"), align = "right"),
                                           #span(h4(textOutput("reactive_recovered_count"), align = "right"), style="color:#006d2c"),
@@ -100,6 +100,7 @@ ui <- bootstrapPage(
                                           #tags$i(h6("Reported cases are subject to significant variation in testing capacity between countries.")),
                                           plotOutput("distribution_HDI", height="130px", width="100%"),
                                           plotOutput("distribution_GDI", height="130px", width="100%"),
+                                          plotOutput("distribution_GII", height="130px", width="100%"),
                                           sliderInput(inputId = "Year",
                                                       label = h5("Select Year"),
                                                       min = 1990,
@@ -108,20 +109,30 @@ ui <- bootstrapPage(
                                                       timeFormat = '%Y',
                                                       #animate=animationOptions(interval = 3000, loop = FALSE),
                                           ),
-                                          selectInput('Countries', NULL, choices = sort(as.character(all_data$Country) %>% unique)),
+                                          #selectInput('Countries', NULL, choices = sort(as.character(all_data$Country) %>% unique)),
                                           ),
-                            absolutePanel(top = 80, left = "auto", right = 20, bottom = "auto",
-                                          width = 250, height = "auto",draggable = FALSE,
+                            absolutePanel(id = "controls", class = "panel panel-default",
+                                          top = 80, right = 20, width = 250, fixed=TRUE,
+                                          draggable = FALSE, height = "auto",
+                                          #id = "controls2", top = 80, left = "auto", right = 20, bottom = "auto",
+                                          #class = "panel panel-default",
+                                          #fixed=TRUE, 
+                                          #width = 250, height = "auto",draggable = FALSE,
                                           selectInput(inputId = "select_map_of_a_country",
-                                                      label = h5("Country of Scope:"), 
+                                                      label = h4("Country of Scope:"), 
                                                       choices = c("All country" = "All",
                                                                   sort(as.character(all_data$Country) %>% unique))),
                                           #uiOutput("secondselection")
-                                          leafletOutput("map_on_the_right",width="240",height = "200")
+                                          leafletOutput("map_on_the_right",width="240",height = "150"),
+                                          h4(textOutput('choosen_year'),style="color:#006d2c"),
+                                          h6(textOutput("country_HDI")),
+                                          h6(textOutput("country_GDI")),
+                                          h6(textOutput("country_GII"))
                                           ),
+                            
                                           #style = "opacity: 0.65; z-index: 10;", ## z-index modification
-                                          
                             )),
+               tabPanel("Indexes"),
                tabPanel("HDI",
                             sidebarLayout(
                                 sidebarPanel(top = 80, left = 20,# width = 250,unique(all_data$Country)
@@ -179,23 +190,16 @@ server <- function(input,output,session) {
         worldcountry %>%
             merge(filter(all_data,Year==input$Year),by.x = "NAME_LONG", by.y = "Country") # here we can change the input of data
     })
-    
+
     output$mymap <- renderLeaflet({ 
         basemap
     })
     
-    # this can be used in later graphs
-    #observe({
-    #    mapdata <- subset(worldcountry, NAME_LONG == input$Countries)
-    #    rgn <- mapdata@bbox %>% as.vector()
-    #    leafletProxy("mymap", session) %>% clearShapes() %>%
-    #        flyToBounds(rgn[1], rgn[2], rgn[3], rgn[4])
-    #})
     observeEvent(input$Year, {
         leafletProxy("mymap") %>% 
             addPolygons(data = reactive_db(), 
                         smoothFactor = 0.2, 
-                        fillColor = ~colorQuantile("Blues",domain = reactive_db()$HDI)(reactive_db()$HDI), # ÊÇÂÖÀªÄÚµÄÑÕÉ«
+                        fillColor = ~colorQuantile("Blues",domain = reactive_db()$HDI)(reactive_db()$HDI), # æ˜¯è½®å»“å†…çš„é¢œè‰²
                         fillOpacity = 0.7,
                         color="white", #stroke color
                         weight = 1, # stroke width in pixels
@@ -222,7 +226,7 @@ server <- function(input,output,session) {
             addPolygons(data = reactive_db(), 
                         smoothFactor = 0.2, 
                         fillColor = ~colorQuantile("Greens",domain = reactive_db()$Gender_Development_Index
-                                                   )(reactive_db()$Gender_Development_Index), # ÊÇÂÖÀªÄÚµÄÑÕÉ«
+                                                   )(reactive_db()$Gender_Development_Index), # æ˜¯è½®å»“å†…çš„é¢œè‰²
                         fillOpacity = 0.7,
                         color="white", #stroke color
                         weight = 1, # stroke width in pixels
@@ -246,7 +250,7 @@ server <- function(input,output,session) {
             addPolygons(data = reactive_db(), 
                         smoothFactor = 0.2, 
                         fillColor = ~colorQuantile("Oranges",domain = reactive_db()$Gender_Inequality_Index
-                        )(reactive_db()$Gender_Inequality_Index), # ÊÇÂÖÀªÄÚµÄÑÕÉ«
+                        )(reactive_db()$Gender_Inequality_Index), # æ˜¯è½®å»“å†…çš„é¢œè‰²
                         fillOpacity = 0.7,
                         color="white", #stroke color
                         weight = 1, # stroke width in pixels
@@ -270,8 +274,8 @@ server <- function(input,output,session) {
                         #popupOptions = popupOptions(maxWidth ="100%", closeOnClick = TRUE)
             addLayersControl(
                 position = "bottomright",
-                baseGroups = c("Human Development Index","Gender Development Index","Gender Inequality Index"),# Ö»¿ÉÒÔÑ¡ÔñÒ»¸öµÄgroup
-                #overlayGroups = c("Human Development Index","Gender Development Index"), # ¿ÉÒÔ¶ÑµþµÄgroup
+                baseGroups = c("Human Development Index","Gender Development Index","Gender Inequality Index"),# åªå¯ä»¥é€‰æ‹©ä¸€ä¸ªçš„group
+                #overlayGroups = c("Human Development Index","Gender Development Index"), # å¯ä»¥å †å çš„group
                 options = layersControlOptions(collapsed = FALSE)) %>%
             hideGroup(c("Gender Development Index","Gender Inequality Index"))
                       })
@@ -299,6 +303,29 @@ server <- function(input,output,session) {
                   plot.margin = margin(5, 12, 5, 5))
     })
     
+    output$distribution_GII = renderPlot({
+        all_data %>%
+            filter(Year==input$Year) %>% 
+            ggplot(aes(x = reorder(Country,-Gender_Inequality_Index), 
+                       y = Gender_Inequality_Index,
+                       #fill = Region #color = Country,
+            ))+
+            geom_bar(position="stack", stat="identity",fill = "#cc4c02")+#fill = "#cc4c02")+
+            ylab("") + 
+            xlab("Country")+
+            ggtitle("Gender Inequality Index")+
+            #scale_x_categorical(breaks=seq(0, 10, 1))
+            theme_bw() + 
+            #scale_fill_manual(values=c("#cc4c02")) +
+            scale_y_continuous(expand = c(0, 0))+
+            #scale_y_continuous(labels = function(l) {trans = l / 1000; paste0(trans, "K")}) +
+            theme(legend.title = element_blank(), 
+                  axis.text.x = element_blank(),
+                  axis.ticks = element_blank(),
+                  legend.position = "", 
+                  plot.title = element_text(size=10), 
+                  plot.margin = margin(5, 12, 5, 5))
+    })
     output$distribution_GDI = renderPlot({
         all_data %>%
             filter(Year==input$Year) %>% 
@@ -324,7 +351,7 @@ server <- function(input,output,session) {
     })
     
     output$HDI_text <- renderText({
-        paste0("In ", input$Year, "xx countries are high development countries")
+        paste0("In ", input$Year, " the distribution of HDI,GDI and GII of all countries")
     })
     
     output$map_on_the_right <- renderLeaflet({ 
@@ -340,35 +367,47 @@ server <- function(input,output,session) {
             worldcountry %>%
             merge(filter(all_data,Year==input$Year, Country ==input$select_map_of_a_country),by.x = "NAME_LONG", by.y = "Country") # here we can change the input of data
     })
+    # this can be used in later graphs
+    #observe({
+    #    mapdata <- subset(worldcountry, NAME_LONG == input$Countries)
+    #    rgn <- mapdata@bbox %>% as.vector()
+    #    leafletProxy("mymap", session) %>% clearShapes() %>%
+    #        flyToBounds(rgn[1], rgn[2], rgn[3], rgn[4])
+    #})
     
-    #observeEvent(input$select_map_of_a_country, {
-    #    leafletProxy("map_on_the_right") %>% 
-    #        addPolygons(data =  reactive_db_onecountry(), 
-                        #smoothFactor = 0.2, 
-                        #fillColor = ~colorQuantile("Purples",domain = reactive_db()$HDI)(reactive_db()$HDI), # ÊÇÂÖÀªÄÚµÄÑÕÉ«
-                        #fillOpacity = 0.7,
-                        #color="white", #stroke color
-                        #weight = 1, # stroke width in pixels
-                        #highlight = highlightOptions(
-                        #    #weight = 5,
-                        #    color = "#666",
-                        #    #dashArray = "",
-                        #    fillOpacity = 0.7,
-                        #    bringToFront = TRUE #Whether the shape should be brought to front on hover
-                        #),
-                        #label = sprintf(
-                        #    "<strong>%s</strong><br/>HDI Index: %g",
-                        #    reactive_db()$NAME_LONG, reactive_db()$HDI
-                        #) %>% lapply(htmltools::HTML),
-                        #labelOptions = labelOptions(
-                        #    style = list("font-weight" = "normal", padding = "3px 8px"),
-                        #    textsize = "15px",
-                        #    direction = "auto"),
-                        #group = "Human Development Index",
-                        #popup = popup,
-                        #popupOptions = popupOptions(maxWidth ="100%", closeOnClick = TRUE),
+    observeEvent(input$select_map_of_a_country, {
+        mapdata <- subset(worldcountry, NAME_LONG == input$select_map_of_a_country)
+            rgn <- mapdata@bbox %>% as.vector()
+            leafletProxy("map_on_the_right", session) %>% clearShapes() %>%
+                flyToBounds(rgn[1], rgn[2], rgn[3], rgn[4]) %>%
+                addPolygons(data = mapdata, fill = T, fillColor = 'gold', color = 'white')
+            })
+    # Right Panel Function 2: HDI, GDI and GII for a country in a certain year.
+    # Build a dynamic data table
+    reactive_all_data_one_country = reactive({
+        all_data %>%
+            filter(Country == input$select_map_of_a_country, Year == input$Year)
+    })
+    output$choosen_year <- renderText({
+        paste0('In ',(reactive_all_data_one_country()$Year))
+    })
     
-    #______________HDI Page__________________________________________________
+    # for a certain year, what is the HDI for a country 
+    output$country_HDI <- renderText({
+        paste0("HDI : ", (reactive_all_data_one_country()$HDI))
+    })
+    
+    # for a certain year, what is the GDI for a country
+    output$country_GDI <- renderText({
+        paste0("GDI : ", (reactive_all_data_one_country()$Gender_Development_Index))
+    })
+    
+    # for a certain year, what is the GII for a country
+    output$country_GII <- renderText({
+        paste0("GII  : ", (reactive_all_data_one_country()$Gender_Inequality_Index))
+    })
+    
+    #__________Page 2 : HDI__________________________________________________
     #_______ Writer: JI Xiao Jun ____________________________________________
     
     ## filter data6
@@ -432,9 +471,10 @@ server <- function(input,output,session) {
     })
     output$GNItrend <- renderPlotly({reactive_GNI()})
     
+
     
     #______________Heatmap Page__________________________________________________
-    #_______ Writer:             ________________________________________________
+    #_______ Writer: JI Xiaojun__________________________________________________
     output$heatmap <- renderPlotly({
         heatdata <- all_data %>%
             filter(Year == input$heatyear,
@@ -450,7 +490,7 @@ server <- function(input,output,session) {
 
     
     #______________Dumbbel Chart Page____________________________________________
-    #_______ Writer:             ________________________________________________ 
+    #_______ Writer: JI Xiaojun__________________________________________________ 
     
     # Prepare for Dumbbell chart
     output$dumbbell<-renderPlotly({

@@ -1,3 +1,6 @@
+### This part is done by ZHU Honglu
+### This part has not been merged.
+
 library(shiny)
 library(WDI)
 library(ggvis)
@@ -22,9 +25,7 @@ ui <- fluidPage(
 )
 
 server <- function(input, output) {
-  
   output$graph = renderPlot({
-    
     indicator2 %>%
       ggvis(~GDP_per_capita, ~life_expectancy, fill=~factor(region)) %>%
       layer_points(size= ~population_total/1000000,opacity:=0.6) %>%
@@ -36,7 +37,6 @@ server <- function(input, output) {
                  axis = list(stroke = "white"),
                  labels = list(fontSize = 0)))
   })
-  
 }
 
 
