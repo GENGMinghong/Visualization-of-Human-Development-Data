@@ -36,3 +36,173 @@ data1=read_excel('data/Table1.HDI&Components.xlsx')
 some thoughts here.
 
 # 4. shiny
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+### Install Packages
+```{r}
+packages = c('tidyverse','reshape','ggplot2','tidyr','gganimate','stringr','plotly','RColorBrewer','adegenet','NAM','snow','doSNOW','parallel','circular','d3heatmap','plotly','viridis','hrbrthemes','grid','gtable','leaflet')
+for (p in packages){
+  if(!require(p,character.only = T)){
+    install.packages(p)
+  }
+  library(p, character.only = T)
+}
+install.packages('leaflet')
+library(leaflet)
+library(shiny)
+```
+
+### Read File
+
+
+```{r}
+# Prepare data
+all <- read.csv('data/All.csv', header = TRUE)
+names(all)[4]="Country"
+names(all)[1]='Continent'
+choice <- colnames(all)[1:4]
+head(all)
+print(choice)
+```
+
+
+### Shiny 
+
+```{r}
+#### User Interface
+ui <- bootstrapPage(
+    #shinythemes::themeSelector(),
+    tags$head("Human Development Report"),
+    navbarPage(theme = shinytheme("flatly"), collapsible = TRUE,
+               "Human Development Report", id="nav",
+               tabPanel("World mapper",
+                        div(leafletOutput("mymap"),
+                            p(),
+                            actionButton("recalc", "New points")
+                            )),
+               tabPanel("HDI"),
+               tabPanel("Gender Development Index"),
+               tabPanel("Poverty Index"),
+               tabPanel("Population"),
+               tabPanel("Health"),
+               tabPanel("Education"),
+               tabPanel("Data"),
+               tabPanel("About us")),
+
+  sidebarLayout(
+    sidebarPanel(width = 3,
+      selectInput('level','Choose a Level', choices = choice),
+      selectInput("country","Choose countries",choices = unique(HDI$Country), multiple = TRUE),
+      sliderInput("year",'choose year'锛? min = 1990, max = 2018, value = c(1990,2018),step = 1),
+      actionButton("Search", "Search"),
+      actionButton("Help","About")
+    ),
+    mainPanel(
+      fluidRow(column(plotly::plotlyOutput(outputId = "LEtrend"),width = 4, height = 3),
+               column(plotly::plotlyOutput(outputId = "MStrend"),width = 4),
+               column(plotly::plotlyOutput(outputId = "EStrend"),width = 4)),
+      fluidRow(column(plotly::plotlyOutput(outputId = "GNItrend"),width = 4),
+               column(plotly::plotlyOutput(outputId = "HDItrend"),width = 4))
+    )
+  )
+)
+
+
+#### Server
+server<-function(input, output, session){
+  
+## filter data
+  extract_data <- reactive({
+    all %>%
+    filter(Country == input$country,
+           Year >= input$year[1],
+           Year <= input$year[2])
+  })
+  
+## HDI trend plot
+  reactive_HDI <- eventReactive(input$Search,{
+    extract_data()%>%
+         plot_ly(x = ~Year, y=~HDI, color = ~Country, hoverinfo = "text",
+                 text = ~paste(input$country, HDI)) %>%
+         add_lines()%>%
+        layout(showlegend=TRUE)
+      })
+  
+  output$HDItrend <- renderPlotly({reactive_HDI()})
+  
+## Life Expectancy trend plot
+  reactive_LifeExpectancy <- eventReactive(input$Search,{
+       extract_data()%>%
+         plot_ly(x = ~Year, y=~Life_Expectancy, color = ~Country, hoverinfo = "text",
+                  text = ~paste(input$country, Life_Expectancy)) %>%
+         add_lines()%>%
+         layout(showlegend=TRUE)
+      })
+  output$LEtrend <- renderPlotly({reactive_LifeExpectancy()})
+
+## Expected Schooling trend plot
+  reactive_ExpectedSchooling <- eventReactive(input$Search,{
+       extract_data()%>%
+         plot_ly(x = ~Year, y=~Expected_Years_of_Schooling, color = ~Country, hoverinfo = "text",
+                  text = ~paste(input$country, Expected_Years_of_Schooling)) %>%
+         add_lines()%>%
+         layout(showlegend=TRUE)
+      })
+  output$EStrend <- renderPlotly({reactive_ExpectedSchooling()})
+
+## Mean Schooling trend plot
+  reactive_MeanSchooling <- eventReactive(input$Search,{
+       extract_data()%>%
+         plot_ly(x = ~Year, y=~Mean_Years_of_Schooling, color = ~Country, hoverinfo = "text",
+                  text = ~paste(input$country, Mean_Years_of_Schooling)) %>%
+         add_lines()%>%
+         layout(showlegend=TRUE)
+      })
+  output$MStrend <- renderPlotly({reactive_MeanSchooling()})
+
+## GNI per capita trend plot
+  reactive_GNI <- eventReactive(input$Search,{
+       extract_data()%>%
+         plot_ly(x = ~Year, y=~GNI_per_capita, color = ~Country, hoverinfo = "text",
+                  text = ~paste(input$country, GNI_per_capita)) %>%
+         add_lines()%>%
+         layout(showlegend=TRUE)
+      })
+  output$GNItrend <- renderPlotly({reactive_GNI()})
+}
+
+shinyApp(ui = ui, server = server)
+
+```
+
+```{r}
+  output$duration_table <- renderTable({
+    HDI %>%
+      filter(
+        Country == input$country,
+        Year >= input$year[1],
+        Year <= input$year[2]
+      ) %>%
+      group_by(shape) %>%
+      summarize(
+        nb_sighted = n(),
+        avg_duration = mean(duration_sec),
+        median_duration = median(duration_sec),
+        min_duration = min(duration_sec),
+        max_duration = max(duration_sec)
+      )
+  })
+```
+
+```{r}
+install.packages("shinyWidgets")
+library(shinyWidgets)
+shinyWidgetsGallery()
+```
+
+
+
+
