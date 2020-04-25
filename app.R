@@ -135,25 +135,28 @@ ui<- bootstrapPage(
                                           ),
                                           #style = "opacity: 0.65; z-index: 10;", ## z-index modification
                             )),
-               tabPanel("Indexes",
-                        sidebarLayout(
-                            sidebarPanel(top = 80, left = 20,# width = 250,
-                                         width = 3,
-                                         selectInput(inputId = 'GraphType','Graph Type:', choices = c("Heatmap",
-                                                                                                      "Line",
-                                                                                                      "Density",
-                                                                                                      "Dumbbell"))
-                            ),
-                            mainPanel(
-                                h6("To be added...")
-                            )
-               ),
-               ),
+               #tabPanel("Indexes",
+               #        sidebarLayout(
+               #            sidebarPanel(top = 80, left = 20,# width = 250,
+               #                           width = 3,
+               #                         selectInput(inputId = 'GraphType','Graph Type:', choices = c("Heatmap",
+               #                                                                                       "Line",
+               #                                                                                      "Density",
+               #                                                                                       "Dumbbell"))
+               #            ),
+               #             mainPanel(
+               #                h6("To be added...")
+               #              )
+               #),
+               #),
                tabPanel("HDI and its Components",
                             sidebarLayout(
                                 sidebarPanel(top = 80, left = 20,# width = 250,unique(all_data$Country)
                                              width = 3,
-                                             selectInput("country","Choose Countries", choices = unique(all_data$Country), multiple = TRUE),
+                                             selectInput("country","Choose Countries", 
+                                                         choices = unique(all_data$Country),
+                                                         selected = c('Singapore','China','India','United States'),
+                                                         multiple = TRUE),
                                              sliderInput("year",'choose a year range', min = 1990, max = 2018, value = c(1990,2018),step = 1),
                                              actionButton("Search", "Search"),
                                              actionButton("Help","About")
@@ -177,8 +180,20 @@ ui<- bootstrapPage(
                tabPanel("Correlation",
                         sidebarLayout(
                             sidebarPanel(top = 80, left = 20, width = 3,
-                                         selectInput('heatcountry','Choose Countries', choices = append('All',unique(all_data$Country)), multiple = TRUE),
-                                         selectInput('heatindex','Choose Indexes', choices = indexchoice, multiple = TRUE),
+                                         selectInput('heatcountry','Choose Countries', 
+                                                     choices = append('All',unique(all_data$Country)), 
+                                                     multiple = TRUE,
+                                                     selected = c('Singapore','China','India','United States')
+                                                     ),
+                                         selectInput('heatindex','Choose Indexes', 
+                                                     choices = indexchoice, 
+                                                     multiple = TRUE,
+                                                     selected = c("HDI",
+                                                                  "Gender_Development_Index",
+                                                                  "Gender_Inequality_Index",
+                                                                  "Total_Unemployment_Rate",
+                                                                  "Education_Index")
+                                                     ),
                                          sliderInput('heatyear','Choose a year', min = 1990, max = 2018, value = 2018, step = 1),
                                          textInput('cluster', 'Input the Number of Clusters'),
                                          selectInput('scale','Choose Scale',choices = scale_choice),
@@ -189,13 +204,13 @@ ui<- bootstrapPage(
                             mainPanel(plotlyOutput('heatmap',width = "100%", height = "150%"))
                             
                         )),
-               tabPanel("Dumbbell Chart",
-                        sidebarLayout(
-                            sidebarPanel(top = 80, left = 20, width = 3,
-                                         selectInput('dumbbellcountry','Choose Countries', choices = unique(all_data$Country), multiple = TRUE),
-                                         selectInput('dumbellindex','Choose Indexes', choices = indexchoice)),
-                            mainPanel(plotlyOutput('dumbbell'))
-                        )),
+               #tabPanel("Dumbbell Chart",
+               #        sidebarLayout(
+               #             sidebarPanel(top = 80, left = 20, width = 3,
+               #                         selectInput('dumbbellcountry','Choose Countries', choices = unique(all_data$Country), multiple = TRUE),
+               #                         selectInput('dumbellindex','Choose Indexes', choices = indexchoice)),
+               #              mainPanel(plotlyOutput('dumbbell'))
+               #          )),
                tabPanel("Bubble plot",
                         mainPanel(
                             plotlyOutput(outputId = "bubbleplot")
@@ -226,7 +241,7 @@ ui<- bootstrapPage(
                             "The main map is designed as a choropleth map and colored with blue. 
                             The darker the color, the higher the value it stands for.",tags$br(),tags$br(),
                             "There is a mini map in the upper right corner. In this map, user can 
-                            select a certain country of his/her interest and then the view of map will “fly” to 
+                            select a certain country of his/her interest and then the view of map will 鈥渇ly鈥? to 
                             the country which is chosen by user. And the summarized information of this country 
                             in the selected year will appear under the mini map.",tags$br(),tags$br(),
                             "Note: Once open this Shiny app, it will take about 30 seconds to 
@@ -246,7 +261,7 @@ ui<- bootstrapPage(
                             ,tags$br(),tags$br(),
                             tags$h5('Data'),tags$br(),
                             'In this page, the overview of the whole dataset is placed. Users can download the dataset as a CSV format file by 
-                            clicking the button “Download as CSV”.'
+                            clicking the button 鈥淒ownload as CSV鈥?.'
                             ,tags$br(),tags$br(),
             
                             tags$h4("Code"),
@@ -654,31 +669,31 @@ server <- function(input,output,session) {
     #__________Page 5 : Bubble Plot _________________________________________
     #__________Writer: Zhu Honglu ___________________________________________
 
-    output$bubbleplot = renderPlotly({
-        wbstats::wb(indicator = c("SP.DYN.LE00.IN", "NY.GDP.PCAP.CD", "SP.POP.TOTL"), 
-                    country = "countries_only", startdate = 1990, enddate = 2018)  %>% 
-            # pull down mapping of countries to regions and join
-            dplyr::left_join(wbstats::wbcountries() %>% 
-                             dplyr::select(iso3c, region)) %>% 
-                             dplyr::select(iso3c, region)) %>% 
-            # spread the three indicators
-            tidyr::pivot_wider(id_cols = c("date", "country", "region"), names_from = indicator, values_from = value) %>% 
-            # plot the data
-            ggplot2::ggplot(aes(x = log(`GDP per capita (current US$)`), y = `Life expectancy at birth, total (years)`,
-                                size = `Population, total`)) +
-            ggplot2::geom_point(alpha = 0.5, aes(color = region)) +
-            ggplot2::scale_size(range = c(.1, 16), guide = FALSE) +
-            ggplot2::scale_x_continuous(limits = c(2.5, 12.5)) +
-            ggplot2::scale_y_continuous(limits = c(30, 90)) +
-            viridis::scale_color_viridis(discrete = TRUE, name = "Region", option = "plasma") +
-            ggplot2::labs(x = "Log GDP per capita",
-                          y = "Life expectancy at birth") +
-            ggplot2::theme_classic() +
-            ggplot2::geom_text(aes(x = 7.5, y = 60, label = date), size = 14, color = 'lightgrey', family = 'Oswald') +
-            # animate it over years
-            gganimate::transition_states(date, transition_length = 1, state_length = 1) +
-            gganimate::ease_aes('cubic-in-out')
-    })
+    #output$bubbleplot = renderPlotly({
+    #    wbstats::wb(indicator = c("SP.DYN.LE00.IN", "NY.GDP.PCAP.CD", "SP.POP.TOTL"), 
+    #                country = "countries_only", startdate = 1990, enddate = 2018)  %>% 
+    #        # pull down mapping of countries to regions and join
+    #        dplyr::left_join(wbstats::wbcountries() %>% 
+    #                         dplyr::select(iso3c, region)) %>% 
+    #                         dplyr::select(iso3c, region)) %>% 
+    #        # spread the three indicators
+    #        tidyr::pivot_wider(id_cols = c("date", "country", "region"), names_from = indicator, values_from = value) %>% 
+    #        # plot the data
+    #        ggplot2::ggplot(aes(x = log(`GDP per capita (current US$)`), y = `Life expectancy at birth, total (years)`,
+    #                            size = `Population, total`)) +
+    #        ggplot2::geom_point(alpha = 0.5, aes(color = region)) +
+    #        ggplot2::scale_size(range = c(.1, 16), guide = FALSE) +
+    #        ggplot2::scale_x_continuous(limits = c(2.5, 12.5)) +
+    #        ggplot2::scale_y_continuous(limits = c(30, 90)) +
+    #        viridis::scale_color_viridis(discrete = TRUE, name = "Region", option = "plasma") +
+    #        ggplot2::labs(x = "Log GDP per capita",
+    #                      y = "Life expectancy at birth") +
+    #        ggplot2::theme_classic() +
+    #        ggplot2::geom_text(aes(x = 7.5, y = 60, label = date), size = 14, color = 'lightgrey', family = 'Oswald') +
+    #        # animate it over years
+    #        gganimate::transition_states(date, transition_length = 1, state_length = 1) +
+    #        gganimate::ease_aes('cubic-in-out')
+    #})
 }
 
 
