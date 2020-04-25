@@ -338,6 +338,26 @@ temp= heatmaply(heatmap_matrix,
           xlab = "World Happiness Indicators",
           ylab = "World Countries")
 temp
-
-heatmaply(all_data %>% 
-            filter(Year==2018))
+#______________________________________--
+heatmap <- all_data %>%
+  filter(Year == 2018) %>%
+  column_to_rownames(var = "Country") %>%
+  normalize() %>%
+  heatmaply(scale = 'none',
+            dist_method = 'euclidean',
+            hclust_method = 'ward.D', 
+            seriate = 'OLO',
+            colors = Blues,
+            Colv=NA,
+            k_row = 5,
+            #k_col = 3,
+            #margins = c(NA,800,1000,NA),
+            fontsize_row = 4,
+            fontsize_col = 5,
+            #main="World Happiness Score and Variables by Country, 2018 \nDataTransformation using Normalise Method",
+            xlab = "Indicators",
+            ylab = "Countries") %>%
+  layout(height=800,width=1000)
+            
+  #select(Country,HDI,Gender_Development_Index,Gender_Inequality_Index)
+heatmap

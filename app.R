@@ -1,33 +1,40 @@
 # load required packages
+library(ggpubr)
+library(plotly)
+library(tidyverse)
+library(readxl)
+library(Hmisc)
+library(geojsonio)
+library(sf)
+library(tmap)
+library(maptools)
 library(shiny)
-packages=c('ggpubr',
-           'plotly',
-           'tidyverse',
-           'readxl',
-           'Hmisc', 
-           'geojsonio',
-           'sf', 
-           'tmap',
-           'maptools',
-           'shiny',
-           'shinythemes',
-           'leaflet',
-           'rgdal',
-           'RColorBrewer',
-           'heatmaply',
-           'shinyHeatmaply',
-           'gapminder',
-           'ggalt',
-           'seriation', 
-           'dendextend', 
-           'heatmaply')
+library(shinythemes)
+library(leaflet)
+library(rgdal)
+library(RColorBrewer)
+library(heatmaply)
+library(shinyHeatmaply)
+library(gapminder)
+library(ggalt)
+library(seriation)
+library(dendextend)
 
-for(p in packages){library
-    if (!require(p,character.only = T)){
-        install.packages(p)
-    }
-    library(p,character.only = T)
-}  
+
+
+
+
+
+#packages=c('ggpubr',plotly','tidyverse','readxl','Hmisc','geojsonio','sf','tmap',
+#           'maptools','shiny','shinythemes','leaflet','rgdal','RColorBrewer',
+#           'heatmaply','shinyHeatmaply','gapminder','ggalt','seriation', 'dendextend')
+
+#for(p in packages){library
+#    if (!require(p,character.only = T)){
+#        install.packages(p)
+#    }
+#    library(p,character.only = T)
+#}  
 
 # Import Data
 worldcountry = geojson_read("data/50m.geojson", what = "sp")
@@ -56,7 +63,7 @@ basemap = leaflet(worldcountry) %>%
 
 # Prepare for HDI page
 names(all_data)[1]='Continent'
-head(all_data)
+#head(all_data)
 
 
 # Prepare for choosing index
@@ -73,7 +80,7 @@ seriate_choice <- c("OLO", "mean", "none", "GW")
 
 #######    DATA PRECESSING    #########
 # Extract Year from Table
-# 鐜板湪宸茬粡寮冪敤锛屼娇鐢ㄥ浐瀹氱殑鏃堕棿鑼冨�? 
+# 閻滄澘婀鑼病瀵啰鏁ら敍灞煎▏閻劌娴愮€规氨娈戦弮鍫曟？閼煎啫娲? 
 # min_year = min(HDI$Year)
 # max_year = 2018#max(HDI$year)
 
@@ -85,11 +92,11 @@ ui<- bootstrapPage(
     navbarPage(theme = shinytheme("flatly"), collapsible = TRUE, "Human Development Report", id="nav",
                tabPanel("Indicator Map",
                         div(class="outer",
-                            tags$head(includeCSS("styles.css")), #浣挎偓娴竟鏍忓彉閫忔槑
+                            tags$head(includeCSS("styles.css")), #娴ｆ寧鍋撳ù顔跨珶閺嶅繐褰夐柅蹇旀
                             leafletOutput("mymap",width = "100%", height = "100%"), # output World Map
                             absolutePanel(id = "controls", class = "panel panel-default",
                                           top = 80, left = 20, width = 250, fixed=TRUE,
-                                          draggable = FALSE, height = "auto", # draggable 鎺у埗鑳藉惁绉诲姩
+                                          draggable = FALSE, height = "auto", # draggable 閹貉冨煑閼宠棄鎯佺粔璇插З
                                           
                                           h4(textOutput("HDI_text"), align = "right",style="color:#cc4c02"),
                                           
@@ -207,14 +214,14 @@ ui<- bootstrapPage(
                         "The dataset is downloaded from Human Development Report and cleaned by the team members."),
                tabPanel("About",
                         tags$div(
-                            tags$h5("Last update"), 
+                            tags$h4("Last update"), 
                             h6(paste0(Sys.Date())),
                             "The data used in this Shint Application is gathered from",
                             tags$a(href="http://hdr.undp.org/en/data", "United Natioms Development Programme (UNDP)"),
                             ", in the research of Human Development Report.", tags$br(),
                             #tags$br(),
-                            tags$h5("User Guide"),
-                            tags$h4("Indicator Mapper"),
+                            tags$h4("User Guide"),
+                            tags$h5("Indicator Mapper"),
                             "This indicator map provides a overview of the world to users. 
                             3 most important indicators are provided in this map, namely, Human Development Index, 
                             Gender Development Index and Gender Inequality Index. In the lower-right corner there is a 
@@ -226,54 +233,42 @@ ui<- bootstrapPage(
                             "The main map is designed as a choropleth map and colored with blue. 
                             The darker the color, the higher the value it stands for.",tags$br(),tags$br(),
                             "There is a mini map in the upper right corner. In this map, user can 
-                            select a certain country of his/her interest and then the view of map will ��fly�� to 
+                            select a certain country of his/her interest and then the view of map will “fly” to 
                             the country which is chosen by user. And the summarized information of this country 
                             in the selected year will appear under the mini map.",tags$br(),tags$br(),
                             "Note: Once open this Shiny app, it will take about 30 seconds to 
                             finish the calculation of the page indicator map. And re-plotting this map requires equal time length."
                             ,tags$br(),tags$br(),
-                            tags$h4("Correlation"),
-                            
-                            
-                            
-                            
-                            
-                            
-                            
-                            tags$h4("Background"), 
-                            "In December 2019, cases of severe respiratory illness began to be reported across the city of Wuhan in China. 
-                        These were caused by a new type of coronavirus, and the disease is now commonly referred to as COVID-19.
-                        The number of COVID-19 cases started to escalate more quickly in mid-January and the virus soon spread beyond China's borders. 
-                        This story has been rapidly evolving ever since, and each day we are faced by worrying headlines regarding the current state of the outbreak.",
-                            tags$br(),tags$br(),
-                            "In isolation, these headlines can be hard to interpret. 
-                        How fast is the virus spreading? Are efforts to control the disease working? How does the situation compare with previous epidemics?
-                        This site is updated daily based on data published by Johns Hopkins University. 
-                        By looking beyond the headlines, we hope it is possible to get a deeper understanding of this unfolding pandemic.",
-                            tags$br(),tags$br(),
-                            "An article discussing this site was published in ",tags$a(href="https://theconversation.com/coronavirus-outbreak-a-new-mapping-tool-that-lets-you-scroll-through-timeline-131422", "The Conversation. "),
-                            "The map was also featured on the BBC World Service program",tags$a(href="https://www.bbc.co.uk/programmes/w3csym33", "Science in Action."),
-                            tags$br(),tags$br(),
+                            tags$h5("HDI and its Components"),tags$br(),
+                            "Human Development Index is composited of 4 components: Life Expectancy, Mean of Schooling Year, 
+                            Expected Schooling Year and Gross National Income. In this page, the user can dig into the Human Development Index 
+                            and explore more details. In the control panel, the user can choose a list of countries and a time-period. 
+                            In the main panel, 5 tabs are provided. User can choose one of them to see the change of each aspect individually."
+                            ,tags$br(),tags$br(),
+                            tags$h5("Correlation"),tags$br(),
+                            "The design of this page is to use heatmap to reveal the correlation across a variety of indicators. For countries, 
+                            user can choose any number of countries (can be all countries) to draw a heatmap. The choice of indexes is also flexible. 
+                            In the slider bar, the input of year and number of clusters are changeable. Also we can choose the scale, cluster method, 
+                            distribution method and seriate method."
+                            ,tags$br(),tags$br(),
+                            tags$h5('Data'),tags$br(),
+                            'In this page, the overview of the whole dataset is placed. Users can download the dataset as a CSV format file by 
+                            clicking the button “Download as CSV”.'
+                            ,tags$br(),tags$br(),
+            
                             tags$h4("Code"),
-                            "Code and input data used to generate this Shiny mapping tool are available on ",tags$a(href="https://github.com/eparker12/nCoV_tracker", "Github."),
-                            tags$br(),tags$br(),tags$h4("Sources"),
-                            tags$b("2019-COVID cases: "), tags$a(href="https://github.com/CSSEGISandData/COVID-19/tree/master/csse_covid_19_data/csse_covid_19_time_series", "Johns Hopkins Center for Systems Science and Engineering github page,")," with additional information from the ",tags$a(href="https://www.who.int/emergencies/diseases/novel-coronavirus-2019/situation-reports", "WHO's COVID-19 situation reports."),
-                            " In previous versions of this site (up to 17th March 2020), updates were based solely on the WHO's situation reports.",tags$br(),
-                            tags$b("2003-SARS cases: "), tags$a(href="https://www.who.int/csr/sars/country/en/", "WHO situation reports"),tags$br(),
-                            tags$b("2009-H1N1 confirmed deaths: "), tags$a(href="https://www.who.int/csr/disease/swineflu/updates/en/", "WHO situation reports"),tags$br(),
-                            tags$b("2009-H1N1 projected deaths: "), "Model estimates from ", tags$a(href="https://journals.plos.org/plosmedicine/article?id=10.1371/journal.pmed.1001558", "GLaMOR Project"),tags$br(),
-                            tags$b("2009-H1N1 cases: "), tags$a(href="https://www.cdc.gov/flu/pandemic-resources/2009-h1n1-pandemic.html", "CDC"),tags$br(),
-                            tags$b("2009-H1N1 case fatality rate: "), "a systematic review by ", tags$a(href="https://www.ncbi.nlm.nih.gov/pubmed/24045719", "Wong et al (2009)"), "identified 
-                        substantial variation in case fatality rate estimates for the H1N1 pandemic. However, most were in the range of 10 to 100 per 100,000 symptomatic cases (0.01 to 0.1%).
-                        The upper limit of this range is used for illustrative purposes in the Outbreak comarisons tab.",tags$br(),
-                            tags$b("2014-Ebola cases: "), tags$a(href="https://www.cdc.gov/flu/pandemic-resources/2009-h1n1-pandemic.html", "CDC"),tags$br(),
-                            tags$b("Country mapping coordinates: "), tags$a(href="https://github.com/martynafford/natural-earth-geojson", "Martyn Afford's Github repository"),tags$br(),
-                            tags$br(),tags$br(),tags$h4("Authors"),
-                            "Dr Edward Parker, The Vaccine Centre, London School of Hygiene & Tropical Medicine",tags$br(),
-                            "Quentin Leclerc, Department of Infectious Disease Epidemiology, London School of Hygiene & Tropical Medicine",tags$br(),
-                            tags$br(),tags$br(),tags$h4("Contact"),
-                            "edward.parker@lshtm.ac.uk",tags$br(),tags$br(),
-                            tags$img(src = "vac_dark.png", width = "150px", height = "75px"), tags$img(src = "lshtm_dark.png", width = "150px", height = "75px")
+                            "Code and input data used to generate this Shiny mapping tool are available on ",tags$a(href="https://github.com/GENGMinghong/Visualization-of-Human-Development-Data", "Github."),
+                            tags$br(),tags$br(),
+                            
+                            tags$h4("Sources"),
+                            tags$b("Human Development Report"), tags$a(href="http://www.hdr.undp.org/en/2019-report", "United Nations Development Programme"),
+                            tags$br(),tags$br(),
+                            
+                            tags$h4("Authors"),
+                            "GENG Minghong, Master of IT in business, Singapore Management University.","   mhgeng.2019@mitb.smu.edu.sg",tags$br(),
+                            "JI Xiaojun, Master of IT in business, Singapore Management University.","   xiaojun.ji.2019@mitb.smu.edu.sg",tags$br(),
+                            "ZHU Honglu, Master of IT in business, Singapore Management University.","   hlzhu.2019@mitb.smu.edu.sg",tags$br(),
+                            tags$br(),tags$br()
                         )
                )
 ) # finish navbarPage
@@ -299,7 +294,7 @@ server <- function(input,output,session) {
         leafletProxy("mymap") %>% 
             addPolygons(data = reactive_db(), 
                         smoothFactor = 0.2, 
-                        fillColor = ~colorQuantile("Blues",domain = reactive_db()$HDI)(reactive_db()$HDI), # 是轮廓内的颜�?
+                        fillColor = ~colorQuantile("Blues",domain = reactive_db()$HDI)(reactive_db()$HDI), # 鏄疆寤撳唴鐨勯鑹?
                         fillOpacity = 0.7,
                         color="white", #stroke color
                         weight = 1, # stroke width in pixels
@@ -326,7 +321,7 @@ server <- function(input,output,session) {
             addPolygons(data = reactive_db(), 
                         smoothFactor = 0.2, 
                         fillColor = ~colorQuantile("Blues",domain = reactive_db()$Gender_Development_Index
-                        )(reactive_db()$Gender_Development_Index), # 是轮廓内的颜�?
+                        )(reactive_db()$Gender_Development_Index), # 鏄疆寤撳唴鐨勯鑹?
                         fillOpacity = 0.7,
                         color="white", #stroke color
                         weight = 1, # stroke width in pixels
@@ -350,7 +345,7 @@ server <- function(input,output,session) {
             addPolygons(data = reactive_db(), 
                         smoothFactor = 0.2, 
                         fillColor = ~colorQuantile("Blues",domain = reactive_db()$Gender_Inequality_Index
-                        )(reactive_db()$Gender_Inequality_Index), # 是轮廓内的颜�?
+                        )(reactive_db()$Gender_Inequality_Index), # 鏄疆寤撳唴鐨勯鑹?
                         fillOpacity = 0.7,
                         color="white", #stroke color
                         weight = 1, # stroke width in pixels
@@ -374,8 +369,8 @@ server <- function(input,output,session) {
             #popupOptions = popupOptions(maxWidth ="100%", closeOnClick = TRUE)
             addLayersControl(
                 position = "bottomright",
-                baseGroups = c("Human Development Index","Gender Development Index","Gender Inequality Index"),# 只可以选择一个的group
-                #overlayGroups = c("Human Development Index","Gender Development Index"), # 可以堆叠的group
+                baseGroups = c("Human Development Index","Gender Development Index","Gender Inequality Index"),# 鍙彲浠ラ€夋嫨涓€涓殑group
+                #overlayGroups = c("Human Development Index","Gender Development Index"), # 鍙互鍫嗗彔鐨刧roup
                 options = layersControlOptions(collapsed = FALSE)) %>%
             #addLegend("bottomright", pal = colorQuantile("Blues",domain = reactive_db()$HDI),
             #          values = ~reactive_db()$HDI,title = "<small>Index Value</small>") %>%
