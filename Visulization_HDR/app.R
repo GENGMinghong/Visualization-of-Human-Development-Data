@@ -1,5 +1,8 @@
 # load required packages
+<<<<<<< HEAD
 
+=======
+>>>>>>> fb1c23500d10c632f3bd340f73b00a0362664392
 packages=c('ggpubr',
            'plotly',
            'tidyverse',
@@ -40,8 +43,6 @@ for(p in packages){library
 worldcountry = geojson_read("data/50m.geojson", what = "sp")
 worldcountry@data$NAME_LONG[worldcountry@data$NAME_LONG %in% c('Taiwan','Macao')] <- 'China'
 all_data = read_csv('data/data_cleaned/All_data.csv')
-#all_data = read_csv('data/data_cleaned/All_data.csv', row.names=NULL) # for heatmap part
-#rownames(all_data)
 
 # set label content
 #labels <- sprintf(
@@ -83,17 +84,21 @@ colorchoice <- c('Continent','Region','Level')
 
 #######    DATA PRECESSING    #########
 # Extract Year from Table
+<<<<<<< HEAD
 # 閻滄澘婀鑼病瀵啰鏁ら敍灞煎▏閻劌娴愮€规氨娈戦弮鍫曟？閼煎啫娲? 
+=======
+# 閻滄澘婀鑼病瀵啰鏁ら敍灞煎▏閻€劌娴愮�规氨娈戦弮鍫曟？閼煎啫娲? 
+>>>>>>> fb1c23500d10c632f3bd340f73b00a0362664392
 # min_year = min(HDI$Year)
 # max_year = 2018#max(HDI$year)
 
 
 ##### SHINY APP #####
-ui <- bootstrapPage(
+ui<- bootstrapPage(
     #shinythemes::themeSelector(),
     tags$head(includeHTML("gtag.html")),
     navbarPage(theme = shinytheme("flatly"), collapsible = TRUE, "Human Development Report", id="nav",
-               tabPanel("World mapper",
+               tabPanel("Indicator Map",
                         div(class="outer",
                             tags$head(includeCSS("styles.css")), #娴ｆ寧鍋撳ù顔跨珶閺嶅繐褰夐柅蹇旀
                             leafletOutput("mymap",width = "100%", height = "100%"), # output World Map
@@ -211,6 +216,7 @@ ui <- bootstrapPage(
                             mainPanel(plotlyOutput('dumbbell'))
                         )),
                tabPanel("Bubble plot",
+<<<<<<< HEAD
                         sidebarLayout(
                             sidebarPanel(top = 80, left = 20, width = 3,
                                          selectInput('xaxis','Choose an Index at x axis', choices = indexchoice),
@@ -220,6 +226,10 @@ ui <- bootstrapPage(
                                          sliderInput('bubbleyear','Choose a year', min = 1995, max = 2018, value = 2018, step = 5, animate = TRUE)
                             ),
                             mainPanel(plotlyOutput('bubble'))
+=======
+                        mainPanel(
+                            plotlyOutput(outputId = "bubbleplot")
+>>>>>>> fb1c23500d10c632f3bd340f73b00a0362664392
                         )),
                tabPanel("Data",
                         numericInput("maxrows", "Rows to show", 25),
@@ -228,15 +238,32 @@ ui <- bootstrapPage(
                         "The dataset is downloaded from Human Development Report and cleaned by the team members."),
                tabPanel("About",
                         tags$div(
-                            tags$h4("Last update"), 
+                            tags$h5("Last update"), 
                             h6(paste0(Sys.Date())),
                             "The data used in this Shint Application is gathered from",
-                            tags$a(href="http://hdr.undp.org/en/data", "United Natioms Development Programme (UNDP)"),", in the research of Human Development Report.", tags$br(),
+                            tags$a(href="http://hdr.undp.org/en/data", "United Natioms Development Programme (UNDP)"),
+                            ", in the research of Human Development Report.", tags$br(),
                             #tags$br(),
-                            tags$h4("User Guide"),tags$br(),
-                            tags$h5("World Mapper"),tags$br(),
-                            "This panel provides...", tags$br(),
-                            
+                            tags$h5("User Guide"),
+                            tags$h4("Indicator Mapper"),
+                            "This indicator map provides a overview of the world to users. 
+                            3 most important indicators are provided in this map, namely, Human Development Index, 
+                            Gender Development Index and Gender Inequality Index. In the lower-right corner there is a 
+                            control option, which can be used to control which map to be shown.", tags$br(),tags$br(),
+                            "In the left panel, there are 3 mini-bar charts to show the distribution of 3 indicators 
+                            of all countries in the world. And the slider bar controls the year of which the data we 
+                            want to see. Once the input of year is changed, the map will be re-plotted. 
+                            This process will last for about 30 seconds.", tags$br(),tags$br(),
+                            "The main map is designed as a choropleth map and colored with blue. 
+                            The darker the color, the higher the value it stands for.",tags$br(),tags$br(),
+                            "There is a mini map in the upper right corner. In this map, user can 
+                            select a certain country of his/her interest and then the view of map will “fly” to 
+                            the country which is chosen by user. And the summarized information of this country 
+                            in the selected year will appear under the mini map.",tags$br(),tags$br(),
+                            "Note: Once open this Shiny app, it will take about 30 seconds to 
+                            finish the calculation of the page indicator map. And re-plotting this map requires equal time length."
+                            ,tags$br(),tags$br(),
+                            tags$h4("Correlation"),
                             
                             
                             
@@ -282,6 +309,7 @@ ui <- bootstrapPage(
                )
    ) # finish navbarPage
 ) # finish ui
+
 
 
 
@@ -378,14 +406,17 @@ server <- function(input,output,session) {
             #popupOptions = popupOptions(maxWidth ="100%", closeOnClick = TRUE)
             addLayersControl(
                 position = "bottomright",
+<<<<<<< HEAD
                 baseGroups = c("Human Development Index","Gender Development Index","Gender Inequality Index"),# 鍙彲浠ラ€夋嫨涓€涓殑group
+=======
+                baseGroups = c("Human Development Index","Gender Development Index","Gender Inequality Index"),# 鍙彲浠ラ�夋嫨涓�涓殑group
+>>>>>>> fb1c23500d10c632f3bd340f73b00a0362664392
                 #overlayGroups = c("Human Development Index","Gender Development Index"), # 鍙互鍫嗗彔鐨刧roup
                 options = layersControlOptions(collapsed = FALSE)) %>%
-            #addLegend(
-            #    pal = ~colorQuantile("Blues",domain = reactive_db()$HDI, values = ~density, 
-            #                         opacity = 0.7, title = NULL,
+            #addLegend("bottomright", pal = colorQuantile("Blues",domain = reactive_db()$HDI),
+            #          values = ~reactive_db()$HDI,title = "<small>Index Value</small>") %>%
             #    position = "bottomright"
-            hideGroup(c("Gender Development Index","Gender Inequality Index"))
+            hideGroup(c('Human Development Index',"Gender Development Index","Gender Inequality Index"))
     })
     output$distribution_HDI = renderPlot({
         all_data %>%
@@ -667,9 +698,10 @@ server <- function(input,output,session) {
                                 tickfont = list(color = "#e6e6e6")), 
                    yaxis = list(title = "Countries", tickfont = list(color = "#e6e6e6")))
     })
-    
+  
     #__________Page 5 : Bubble Plot _________________________________________
     #__________Writer: Zhu Honglu ___________________________________________
+<<<<<<< HEAD
     
     output$bubble <- renderPlotly({
         
@@ -717,6 +749,34 @@ server <- function(input,output,session) {
         #    gganimate::ease_aes('cubic-in-out')
     #})
     
+=======
+
+    output$bubbleplot = renderPlotly({
+        wbstats::wb(indicator = c("SP.DYN.LE00.IN", "NY.GDP.PCAP.CD", "SP.POP.TOTL"), 
+                    country = "countries_only", startdate = 1990, enddate = 2018)  %>% 
+            # pull down mapping of countries to regions and join
+            dplyr::left_join(wbstats::wbcountries() %>% 
+                             dplyr::select(iso3c, region)) %>% 
+                             dplyr::select(iso3c, region)) %>% 
+            # spread the three indicators
+            tidyr::pivot_wider(id_cols = c("date", "country", "region"), names_from = indicator, values_from = value) %>% 
+            # plot the data
+            ggplot2::ggplot(aes(x = log(`GDP per capita (current US$)`), y = `Life expectancy at birth, total (years)`,
+                                size = `Population, total`)) +
+            ggplot2::geom_point(alpha = 0.5, aes(color = region)) +
+            ggplot2::scale_size(range = c(.1, 16), guide = FALSE) +
+            ggplot2::scale_x_continuous(limits = c(2.5, 12.5)) +
+            ggplot2::scale_y_continuous(limits = c(30, 90)) +
+            viridis::scale_color_viridis(discrete = TRUE, name = "Region", option = "plasma") +
+            ggplot2::labs(x = "Log GDP per capita",
+                          y = "Life expectancy at birth") +
+            ggplot2::theme_classic() +
+            ggplot2::geom_text(aes(x = 7.5, y = 60, label = date), size = 14, color = 'lightgrey', family = 'Oswald') +
+            # animate it over years
+            gganimate::transition_states(date, transition_length = 1, state_length = 1) +
+            gganimate::ease_aes('cubic-in-out')
+    })
+>>>>>>> fb1c23500d10c632f3bd340f73b00a0362664392
 }
 
 
