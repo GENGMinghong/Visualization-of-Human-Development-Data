@@ -31,8 +31,8 @@ for(p in packages){library
 # Import Data
 worldcountry = geojson_read("data/50m.geojson", what = "sp")
 worldcountry@data$NAME_LONG[worldcountry@data$NAME_LONG %in% c('Taiwan','Macao')] <- 'China'
-all_data = read_csv('data/data_cleaned/All_data.csv')
-
+all_data = read_csv('data/data_cleaned/All_data.csv', row.names=NULL)
+row.names(all_data)
 
 # set label content
 #labels <- sprintf(
@@ -126,16 +126,15 @@ ui <- bootstrapPage(
                             sidebarLayout(
                                 sidebarPanel(top = 80, left = 20,# width = 250,unique(all_data$Country)
                                              width = 3,
-                                             selectInput('continent','Choose a Continent', choices = unique(all_data$Continent), multiple = TRUE),
-                                             selectInput("country","Choose Countries", choices = c(sort(as.character(all_data$Country) %>% unique)), multiple = TRUE),
+                                             selectInput("country","Choose Countries", choices = unique(all_data$Country), multiple = TRUE),
                                              sliderInput("year",'choose a year range', min = 1990, max = 2018, value = c(1990,2018),step = 1),
                                              actionButton("Search", "Search"),
                                              actionButton("Help","About")),
                                 mainPanel(
-                                    fluidRow(plotly::plotlyOutput(outputId = "LEtrend"),
-                                             plotly::plotlyOutput(outputId = "MStrend"),),
-                                    fluidRow(plotly::plotlyOutput(outputId = "EStrend"),
-                                             plotly::plotlyOutput(outputId = "GNItrend")),
+                                    plotly::plotlyOutput(outputId = "LEtrend"),
+                                    plotly::plotlyOutput(outputId = "MStrend"),
+                                    plotly::plotlyOutput(outputId = "EStrend"),
+                                    plotly::plotlyOutput(outputId = "GNItrend"),
                                     plotly::plotlyOutput(outputId = "HDItrend")
                                 )
                             )
@@ -168,6 +167,7 @@ ui <- bootstrapPage(
                tabPanel("About us")
     )
 )
+
 
 
 # Define server logic required to draw a histogram
@@ -375,8 +375,7 @@ server <- function(input,output,session) {
     updateSelectInput(session,inputId='country', label = 'Choose a Country',choices= c(sort(as.character(all_data$Country) %>% unique)))
     extract_data <- reactive({
         all_data %>%
-            filter(Continent = input$continent,
-                   Country == input$country,
+            filter(Country == input$country,
                    Year >= input$year[1],
                    Year <= input$year[2])
     })
@@ -434,42 +433,47 @@ server <- function(input,output,session) {
     
     
     #______________Heatmap Page__________________________________________________
-    #_______ Writer:             ________________________________________________
+    #_______ Writer: JI XIAOJUN________________________________________________
     output$heatmap <- renderPlotly({
-        heatdata <- all_data %>%
-            filter(Year == input$heatyear,
-                   Country == input$heatcountry)%>%
-                   heatdata[c(input$index)]
-    heatmap_matrix <- data.matrix(heatmap_data)
-    heatmaply(heatmap_matrix, 
-              scale = input$scale,
-              dist_method = input$distribution,
-              hclust_method = input$hcluster, 
-              seriate = input$seriate)
+        filter_year <- all_data %>%
+            filter(Year == input$heatyear)
+        
+        heatmap_data <- filter_year%>%
+            filter(Country %in% input$heatcountry)%>%
+            select(input$heatindex)
+        row.names(heatmap_data) <- heatmap_data$Country
+        
+        heatmap_matrix <- data.matrix(heatmap_data)
+        row.names(heatmap_matrix) <- heatmap_data$Country
+        heatmaply(normalize(heatmap_matrix),
+                  scale = input$scale,
+                  dist_method = input$distribution,
+                  hclust_method = input$hcluster, 
+                  seriate = input$seriate)
     })
 
     
     #______________Dumbbel Chart Page____________________________________________
-    #_______ Writer:             ________________________________________________ 
+    #_______ Writer: JI XIAOJUN  ________________________________________________ 
     
     # Prepare for Dumbbell chart
     output$dumbbell<-renderPlotly({
         dumbbell_data <- data %>%
-            filter(Year == 1995 | Year == 2018) %>%
+            select(Country, Year,input$dumbellindex) %>%
+            filter(Year == 1995 | Year == 2018, Country %in% input$dumbbellcountry) %>%
+            spread(Year, input$dumbellindex) %>%
             group_by(Country)%>%
-            mutate(id = 1:n())%>%
-            select(Country, Year,input$dumbbellindex) %>%
-            spread(Year, input$dumbbellindex) %>%
-            arrange(desc(`1995`))
+            mutate(gap = `2018`-`1995`)%>%
+            arrange(desc(gap))
         
         dumbbell_data  %>% 
-            plot_ly(height = 2000) %>% 
+            plot_ly(height = 550) %>% 
             add_segments( x = ~`1995`, xend = ~`2018`, 
                           y = ~input$dumbbellcountry, yend = ~input$dumbbellcountry, showlegend= FALSE) %>% 
             add_markers(x = ~`1995`, y = ~input$dumbbellcountry, name = "index:1995", color = I("pink")) %>% 
             add_markers(x = ~`2018`, y = ~input$dumbbellcountry, name = "index:2018", color = I("blue")) %>% 
-            layout(title = "Journey of All Countries in 'input$dumbbellindex'", 
-                   xaxis = list(title = input$dumbbellindex, 
+            layout(title = "Journey of All Countries in xxx", 
+                   xaxis = list(title = input$dumbellindex, 
                                 tickfont = list(color = "#e6e6e6")), 
                    yaxis = list(title = "Countries", tickfont = list(color = "#e6e6e6")), 
                    plot_bgcolor = "#808080", paper_bgcolor ="#808080")
