@@ -161,15 +161,23 @@ ui <- bootstrapPage(
                                              ),
                                 mainPanel(
                                     tabsetPanel(
-                                        tabPanel("HDI",plotlyOutput(outputId = "HDItrend")),
-                                        tabPanel("Life Expectancy", plotlyOutput(outputId = "LEtrend")),
-                                        tabPanel("Mean of Schooling Year", plotlyOutput(outputId = "MStrend")),
-                                        tabPanel("Expected Schooling Year", plotlyOutput(outputId = "EStrend")),
-                                        tabPanel("Gross National Income", plotlyOutput(outputId = "GNItrend"))
+                                        tabPanel(
+                                            absolutePanel(id = "HDI", plotlyOutput(outputId = "HDItrend"),class = "panel panel-default",
+                                                          top = 400, left = 20, width = 250, fixed=TRUE, 
+                                                          draggable = FALSE, height = "auto"),
+                                                 fluidRow(class = 'row1', 
+                                                          column(6, plotlyOutput(outputId = "LEtrend", height =200)),
+                                                          column(6, plotlyOutput(outputId = "MStrend", height =200))),
+                                                 fluidRow(class = 'row2', 
+                                                          column(6, plotlyOutput(outputId = "EStrend", height = 210)),
+                                                          column(6, plotlyOutput(outputId = "GNItrend", height = 210))))
+
+                                        )
                                     )
                                 )
-                            )
+                            
                         ),
+                            
                tabPanel("Correlation",
                         sidebarLayout(
                             sidebarPanel(top = 80, left = 20, width = 3,
@@ -259,7 +267,7 @@ ui <- bootstrapPage(
                             tags$img(src = "vac_dark.png", width = "150px", height = "75px"), tags$img(src = "lshtm_dark.png", width = "150px", height = "75px")
                         )
                )
-) # finish navbarPage
+   ) # finish navbarPage
 ) # finish ui
 
 
@@ -498,7 +506,7 @@ server <- function(input,output,session) {
     #_______ Writer: JI Xiao Jun ____________________________________________
     
     ## filter data6
-    updateSelectInput(session,inputId='country', label = 'Choose a Country',choices= c(sort(as.character(all_data$Country) %>% unique)))
+    
     extract_data <- reactive({
         all_data %>%
             filter(Country == input$country,
@@ -512,7 +520,7 @@ server <- function(input,output,session) {
             plot_ly(x = ~Year, y = ~HDI, color = ~Country, hoverinfo = "text",
                     text = ~paste(input$country, HDI)) %>%
             add_lines()%>%
-            layout(showlegend=TRUE)
+            layout(showlegend=FALSE, height =200, title = 'Human Development Index')
     })
     
     output$HDItrend <- renderPlotly({reactive_HDI()})
@@ -523,7 +531,7 @@ server <- function(input,output,session) {
             plot_ly(x = ~Year, y = ~Life_Expectancy_at_Birth, color = ~Country, hoverinfo = "text",
                     text = ~paste(input$country, Life_Expectancy_at_Birth)) %>%
             add_lines()%>%
-            layout(showlegend=TRUE)
+            layout(showlegend=FALSE, height =200, title = 'Life Expectancy at Birth')
     })
     output$LEtrend <- renderPlotly({reactive_LifeExpectancy()})
     
@@ -533,7 +541,7 @@ server <- function(input,output,session) {
             plot_ly(x = ~Year, y=~Expected_Years_of_Schooling, color = ~Country, hoverinfo = "text",
                     text = ~paste(input$country, Expected_Years_of_Schooling)) %>%
             add_lines()%>%
-            layout(showlegend=TRUE)
+            layout(showlegend=FALSE, height =200, title = 'Expected Years of Schooling')
     })
     output$EStrend <- renderPlotly({reactive_ExpectedSchooling()})
     
@@ -543,7 +551,7 @@ server <- function(input,output,session) {
             plot_ly(x = ~Year, y=~Mean_Years_of_Schooling, color = ~Country, hoverinfo = "text",
                     text = ~paste(input$country, Mean_Years_of_Schooling)) %>%
             add_lines()%>%
-            layout(showlegend=TRUE)
+            layout(showlegend=FALSE, height =200, title = 'Mean Years of Schooling')
     })
     output$MStrend <- renderPlotly({reactive_MeanSchooling()})
     
@@ -553,7 +561,7 @@ server <- function(input,output,session) {
             plot_ly(x = ~Year, y=~Gross_National_Income_per_capita, color = ~Country, hoverinfo = "text",
                     text = ~paste(input$country, Gross_National_Income_per_capita)) %>%
             add_lines()%>%
-            layout(showlegend=TRUE)
+            layout(legend = list(orientation = 'h'), height =200,  title = 'Gross National Income per capita')
     })
     output$GNItrend <- renderPlotly({reactive_GNI()})
     
