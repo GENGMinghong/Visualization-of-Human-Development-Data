@@ -1,5 +1,5 @@
 # load required packages
-packages=c('ggpubr',
+packages= c('ggpubr',
            'plotly',
            'tidyverse',
            'readxl',
@@ -20,7 +20,14 @@ packages=c('ggpubr',
            'seriation', 
            'dendextend', 
            'heatmaply',
-           )
+           'ggplot2',
+           'viridis',
+           'gganimate',
+           'wbstats',
+           'gifski',
+           'av',
+           'magick')
+
 
 for(p in packages){library
     if (!require(p,character.only = T)){
@@ -33,12 +40,6 @@ for(p in packages){library
 worldcountry = geojson_read("data/50m.geojson", what = "sp")
 worldcountry@data$NAME_LONG[worldcountry@data$NAME_LONG %in% c('Taiwan','Macao')] <- 'China'
 all_data = read_csv('data/data_cleaned/All_data.csv')
-<<<<<<< HEAD
-row.names(all_data)
-=======
-#all_data = read_csv('data/data_cleaned/All_data.csv', row.names=NULL) # for heatmap part
-#rownames(all_data)
->>>>>>> 8f05076e13f6e02610a9ff9bb5a32761f8c77ae4
 
 # set label content
 #labels <- sprintf(
@@ -192,17 +193,11 @@ ui <- bootstrapPage(
                                          selectInput('dumbellindex','Choose Indexes', choices = indexchoice)),
                             mainPanel(plotlyOutput('dumbbell'))
                         )),
-               tabPanel("Zhu HongLu",
-                          
-                        
-                        
-                        
-                        
-                        
-                        
-                        
-                        
-                        ),
+               tabPanel("Bubble plot",
+                        mainPanel(
+                            plotlyOutput(outputId = "bubbleplot")
+
+                        )),
                tabPanel("Data",
                         numericInput("maxrows", "Rows to show", 25),
                         verbatimTextOutput("rawtable"),
@@ -261,7 +256,7 @@ ui <- bootstrapPage(
                         )
                )
 ) # finish navbarPage
-) # finish ui
+)# finish ui
 
 
 
@@ -662,6 +657,30 @@ server <- function(input,output,session) {
                                 tickfont = list(color = "#e6e6e6")), 
                    yaxis = list(title = "Countries", tickfont = list(color = "#e6e6e6")), 
                    plot_bgcolor = "#808080", paper_bgcolor ="#808080")
+    })
+    output$bubbleplot = renderPlotly({
+        wbstats::wb(indicator = c("SP.DYN.LE00.IN", "NY.GDP.PCAP.CD", "SP.POP.TOTL"), 
+                    country = "countries_only", startdate = 1990, enddate = 2018)  %>% 
+            # pull down mapping of countries to regions and join
+            dplyr::left_join(wbstats::wbcountries() %>% 
+                                 dplyr::select(iso3c, region)) %>% 
+            # spread the three indicators
+            tidyr::pivot_wider(id_cols = c("date", "country", "region"), names_from = indicator, values_from = value) %>% 
+            # plot the data
+            ggplot2::ggplot(aes(x = log(`GDP per capita (current US$)`), y = `Life expectancy at birth, total (years)`,
+                                size = `Population, total`)) +
+            ggplot2::geom_point(alpha = 0.5, aes(color = region)) +
+            ggplot2::scale_size(range = c(.1, 16), guide = FALSE) +
+            ggplot2::scale_x_continuous(limits = c(2.5, 12.5)) +
+            ggplot2::scale_y_continuous(limits = c(30, 90)) +
+            viridis::scale_color_viridis(discrete = TRUE, name = "Region", option = "plasma") +
+            ggplot2::labs(x = "Log GDP per capita",
+                          y = "Life expectancy at birth") +
+            ggplot2::theme_classic() +
+            ggplot2::geom_text(aes(x = 7.5, y = 60, label = date), size = 14, color = 'lightgrey', family = 'Oswald') +
+            # animate it over years
+            gganimate::transition_states(date, transition_length = 1, state_length = 1) +
+            gganimate::ease_aes('cubic-in-out')
     })
 }
 
