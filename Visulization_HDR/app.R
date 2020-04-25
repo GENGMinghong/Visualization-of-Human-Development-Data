@@ -31,8 +31,9 @@ for(p in packages){library
 # Import Data
 worldcountry = geojson_read("data/50m.geojson", what = "sp")
 worldcountry@data$NAME_LONG[worldcountry@data$NAME_LONG %in% c('Taiwan','Macao')] <- 'China'
-all_data = read_csv('data/data_cleaned/All_data.csv', row.names=NULL)
-row.names(all_data)
+all_data = read_csv('data/data_cleaned/All_data.csv')
+#all_data = read_csv('data/data_cleaned/All_data.csv', row.names=NULL) # for heatmap part
+#rownames(all_data)
 
 # set label content
 #labels <- sprintf(
@@ -71,7 +72,7 @@ seriate_choice <- c("OLO", "mean", "none", "GW")
 
 #######    DATA PRECESSING    #########
 # Extract Year from Table
-# 鐜板湪宸茬粡寮冪敤锛屼娇鐢ㄥ浐瀹氱殑鏃堕棿鑼冨洿 
+# 鐜板湪宸茬粡寮冪敤锛屼娇鐢ㄥ浐瀹氱殑鏃堕棿鑼冨�? 
 # min_year = min(HDI$Year)
 # max_year = 2018#max(HDI$year)
 
@@ -168,7 +169,7 @@ ui <- bootstrapPage(
                tabPanel("Correlation",
                         sidebarLayout(
                             sidebarPanel(top = 80, left = 20, width = 3,
-                                         selectInput('heatcountry','Choose Countries', choices = unique(all_data$Country), multiple = TRUE),
+                                         selectInput('heatcountry','Choose Countries', choices = append('All',unique(all_data$Country)), multiple = TRUE),
                                          selectInput('heatindex','Choose Indexes', choices = indexchoice, multiple = TRUE),
                                          sliderInput('heatyear','Choose a year', min = 1990, max = 2018, value = 2018, step = 1),
                                          selectInput('scale','Choose Scale',choices = scale_choice),
@@ -176,7 +177,7 @@ ui <- bootstrapPage(
                                          selectInput('distribution', 'Choose Distribution Method', choices = distribution_choice),
                                          selectInput('seriate','Choose seriate Method',choices = seriate_choice)
                                          ),
-                            mainPanel(plotlyOutput('heatmap'))
+                            mainPanel(plotlyOutput('heatmap',width = "100%", height = "150%"))
                             
                         )),
                tabPanel("Dumbbell Chart",
@@ -274,7 +275,7 @@ server <- function(input,output,session) {
         leafletProxy("mymap") %>% 
             addPolygons(data = reactive_db(), 
                         smoothFactor = 0.2, 
-                        fillColor = ~colorQuantile("Blues",domain = reactive_db()$HDI)(reactive_db()$HDI), # 是轮廓内的颜色
+                        fillColor = ~colorQuantile("Blues",domain = reactive_db()$HDI)(reactive_db()$HDI), # 是轮廓内的颜�?
                         fillOpacity = 0.7,
                         color="white", #stroke color
                         weight = 1, # stroke width in pixels
@@ -301,7 +302,7 @@ server <- function(input,output,session) {
             addPolygons(data = reactive_db(), 
                         smoothFactor = 0.2, 
                         fillColor = ~colorQuantile("Blues",domain = reactive_db()$Gender_Development_Index
-                        )(reactive_db()$Gender_Development_Index), # 是轮廓内的颜色
+                        )(reactive_db()$Gender_Development_Index), # 是轮廓内的颜�?
                         fillOpacity = 0.7,
                         color="white", #stroke color
                         weight = 1, # stroke width in pixels
@@ -325,7 +326,7 @@ server <- function(input,output,session) {
             addPolygons(data = reactive_db(), 
                         smoothFactor = 0.2, 
                         fillColor = ~colorQuantile("Blues",domain = reactive_db()$Gender_Inequality_Index
-                        )(reactive_db()$Gender_Inequality_Index), # 是轮廓内的颜色
+                        )(reactive_db()$Gender_Inequality_Index), # 是轮廓内的颜�?
                         fillOpacity = 0.7,
                         color="white", #stroke color
                         weight = 1, # stroke width in pixels
@@ -571,22 +572,61 @@ server <- function(input,output,session) {
 
     #_______ Writer: JI XIAOJUN________________________________________________
     output$heatmap <- renderPlotly({
+        if (input$heatcountry == 'All')
+            heatmap <- all_data %>%
+                filter(Year == input$heatyear) %>%
+                column_to_rownames(var = "Country") %>%
+                normalize() %>%
+                heatmaply(scale = 'none',
+                          dist_method = 'euclidean',
+                          hclust_method = 'ward.D', 
+                          seriate = 'OLO',
+                          colors = Blues,
+                          Colv=NA,
+                          k_row = 5,
+                          margins = c(NA,200,60,NA),
+                          fontsize_row = 4,
+                          fontsize_col = 5,
+                          #main="World Happiness Score and Variables by Country, 2018 \nDataTransformation using Normalise Method",
+                          xlab = "Indicators",
+                          ylab = "Countries")
+        else 
+            heatmap <- all_data %>%
+                filter(Year == input$heatyear) %>%
+                filter(Country %in% input$heatcountry)%>%
+                column_to_rownames(var = "Country") %>%
+                normalize() %>%
+                heatmaply(scale = 'none',
+                          dist_method = 'euclidean',
+                          hclust_method = 'ward.D', 
+                          seriate = 'OLO',
+                          colors = Blues,
+                          Colv=NA,
+                          k_row = 5,
+                          margins = c(NA,200,60,NA),
+                          fontsize_row = 4,
+                          fontsize_col = 5,
+                          #main="World Happiness Score and Variables by Country, 2018 \nDataTransformation using Normalise Method",
+                          xlab = "Indicators",
+                          ylab = "Countries")
 
-        filter_year <- all_data %>%
-            filter(Year == input$heatyear)
+        #heatmap_data <- all_data %>%
+        #    filter(Year == input$heatyear) %>%
+        #    filter(Country %in% input$heatcountry)%>%
+        #    select(input$heatindex)
         
-        heatmap_data <- filter_year%>%
-            filter(Country %in% input$heatcountry)%>%
-            select(input$heatindex)
-        row.names(heatmap_data) <- heatmap_data$Country
+        #heatmap_data <- filter_year%>%
+        #    filter(Country %in% input$heatcountry)%>%
+        #    select(input$heatindex)
+        #row.names(heatmap_data) <- heatmap_data$Country
         
-        heatmap_matrix <- data.matrix(heatmap_data)
-        row.names(heatmap_matrix) <- heatmap_data$Country
-        heatmaply(normalize(heatmap_matrix),
-                  scale = input$scale,
-                  dist_method = input$distribution,
-                  hclust_method = input$hcluster, 
-                  seriate = input$seriate)
+        #heatmap_matrix <- data.matrix(heatmap_data)
+        #row.names(heatmap_matrix) <- heatmap_data$Country
+        #heatmaply(normalize(heatmap_matrix),
+        #          scale = input$scale,
+        #          dist_method = input$distribution,
+        #          hclust_method = input$hcluster, 
+        #          seriate = input$seriate)
     })
     
     
@@ -618,6 +658,6 @@ server <- function(input,output,session) {
 }
 
 
-# Run the application 
+# Run the application s
 shinyApp(ui = ui, server = server)
 
