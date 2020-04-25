@@ -79,11 +79,11 @@ seriate_choice <- c("OLO", "mean", "none", "GW")
 
 
 ##### SHINY APP #####
-ui <- bootstrapPage(
+ui<- bootstrapPage(
     #shinythemes::themeSelector(),
     tags$head(includeHTML("gtag.html")),
     navbarPage(theme = shinytheme("flatly"), collapsible = TRUE, "Human Development Report", id="nav",
-               tabPanel("World mapper",
+               tabPanel("Indicator Map",
                         div(class="outer",
                             tags$head(includeCSS("styles.css")), #浣挎偓娴竟鏍忓彉閫忔槑
                             leafletOutput("mymap",width = "100%", height = "100%"), # output World Map
@@ -207,15 +207,32 @@ ui <- bootstrapPage(
                         "The dataset is downloaded from Human Development Report and cleaned by the team members."),
                tabPanel("About",
                         tags$div(
-                            tags$h4("Last update"), 
+                            tags$h5("Last update"), 
                             h6(paste0(Sys.Date())),
                             "The data used in this Shint Application is gathered from",
-                            tags$a(href="http://hdr.undp.org/en/data", "United Natioms Development Programme (UNDP)"),", in the research of Human Development Report.", tags$br(),
+                            tags$a(href="http://hdr.undp.org/en/data", "United Natioms Development Programme (UNDP)"),
+                            ", in the research of Human Development Report.", tags$br(),
                             #tags$br(),
-                            tags$h4("User Guide"),tags$br(),
-                            tags$h5("World Mapper"),tags$br(),
-                            "This panel provides...", tags$br(),
-                            
+                            tags$h5("User Guide"),
+                            tags$h4("Indicator Mapper"),
+                            "This indicator map provides a overview of the world to users. 
+                            3 most important indicators are provided in this map, namely, Human Development Index, 
+                            Gender Development Index and Gender Inequality Index. In the lower-right corner there is a 
+                            control option, which can be used to control which map to be shown.", tags$br(),tags$br(),
+                            "In the left panel, there are 3 mini-bar charts to show the distribution of 3 indicators 
+                            of all countries in the world. And the slider bar controls the year of which the data we 
+                            want to see. Once the input of year is changed, the map will be re-plotted. 
+                            This process will last for about 30 seconds.", tags$br(),tags$br(),
+                            "The main map is designed as a choropleth map and colored with blue. 
+                            The darker the color, the higher the value it stands for.",tags$br(),tags$br(),
+                            "There is a mini map in the upper right corner. In this map, user can 
+                            select a certain country of his/her interest and then the view of map will ��fly�� to 
+                            the country which is chosen by user. And the summarized information of this country 
+                            in the selected year will appear under the mini map.",tags$br(),tags$br(),
+                            "Note: Once open this Shiny app, it will take about 30 seconds to 
+                            finish the calculation of the page indicator map. And re-plotting this map requires equal time length."
+                            ,tags$br(),tags$br(),
+                            tags$h4("Correlation"),
                             
                             
                             
@@ -360,11 +377,10 @@ server <- function(input,output,session) {
                 baseGroups = c("Human Development Index","Gender Development Index","Gender Inequality Index"),# 只可以选择一个的group
                 #overlayGroups = c("Human Development Index","Gender Development Index"), # 可以堆叠的group
                 options = layersControlOptions(collapsed = FALSE)) %>%
-            #addLegend(
-            #    pal = ~colorQuantile("Blues",domain = reactive_db()$HDI, values = ~density, 
-            #                         opacity = 0.7, title = NULL,
+            #addLegend("bottomright", pal = colorQuantile("Blues",domain = reactive_db()$HDI),
+            #          values = ~reactive_db()$HDI,title = "<small>Index Value</small>") %>%
             #    position = "bottomright"
-            hideGroup(c("Gender Development Index","Gender Inequality Index"))
+            hideGroup(c('Human Development Index',"Gender Development Index","Gender Inequality Index"))
     })
     output$distribution_HDI = renderPlot({
         all_data %>%
