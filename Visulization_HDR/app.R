@@ -1,4 +1,5 @@
 # load required packages
+library(shiny)
 packages=c('ggpubr',
            'plotly',
            'tidyverse',
@@ -149,20 +150,23 @@ ui<- bootstrapPage(
                             )
                ),
                ),
-               tabPanel("HDI",
+               tabPanel("HDI and its Components",
                             sidebarLayout(
                                 sidebarPanel(top = 80, left = 20,# width = 250,unique(all_data$Country)
                                              width = 3,
                                              selectInput("country","Choose Countries", choices = unique(all_data$Country), multiple = TRUE),
                                              sliderInput("year",'choose a year range', min = 1990, max = 2018, value = c(1990,2018),step = 1),
                                              actionButton("Search", "Search"),
-                                             actionButton("Help","About")),
+                                             actionButton("Help","About")
+                                             ),
                                 mainPanel(
-                                    plotly::plotlyOutput(outputId = "LEtrend"),
-                                    plotly::plotlyOutput(outputId = "MStrend"),
-                                    plotly::plotlyOutput(outputId = "EStrend"),
-                                    plotly::plotlyOutput(outputId = "GNItrend"),
-                                    plotly::plotlyOutput(outputId = "HDItrend")
+                                    tabsetPanel(
+                                        tabPanel("HDI",plotlyOutput(outputId = "HDItrend")),
+                                        tabPanel("Life Expectancy", plotlyOutput(outputId = "LEtrend")),
+                                        tabPanel("Mean of Schooling Year", plotlyOutput(outputId = "MStrend")),
+                                        tabPanel("Expected Schooling Year", plotlyOutput(outputId = "EStrend")),
+                                        tabPanel("Gross National Income", plotlyOutput(outputId = "GNItrend"))
+                                    )
                                 )
                             )
                         ),
@@ -172,6 +176,7 @@ ui<- bootstrapPage(
                                          selectInput('heatcountry','Choose Countries', choices = append('All',unique(all_data$Country)), multiple = TRUE),
                                          selectInput('heatindex','Choose Indexes', choices = indexchoice, multiple = TRUE),
                                          sliderInput('heatyear','Choose a year', min = 1990, max = 2018, value = 2018, step = 1),
+                                         sliderInput('cluster', 'Input the Number of Clusters', min = 2, max = 4, value = 3),
                                          selectInput('scale','Choose Scale',choices = scale_choice),
                                          selectInput('hcluster', 'Choose Cluster Method', choices = hcluster_choice),
                                          selectInput('distribution', 'Choose Distribution Method', choices = distribution_choice),
@@ -228,6 +233,8 @@ ui<- bootstrapPage(
                             finish the calculation of the page indicator map. And re-plotting this map requires equal time length."
                             ,tags$br(),tags$br(),
                             tags$h4("Correlation"),
+                            
+                            
                             
                             
                             
@@ -589,42 +596,32 @@ server <- function(input,output,session) {
     #_______ Writer: JI XIAOJUN________________________________________________
     output$heatmap <- renderPlotly({
         if (input$heatcountry == 'All')
-            heatmap <- all_data %>%
-                filter(Year == input$heatyear) %>%
-                column_to_rownames(var = "Country") %>%
-                normalize() %>%
-                heatmaply(scale = 'none',
-                          dist_method = 'euclidean',
-                          hclust_method = 'ward.D', 
-                          seriate = 'OLO',
-                          colors = Blues,
-                          Colv=NA,
-                          k_row = 5,
-                          margins = c(NA,200,60,NA),
-                          fontsize_row = 4,
-                          fontsize_col = 5,
-                          #main="World Happiness Score and Variables by Country, 2018 \nDataTransformation using Normalise Method",
-                          xlab = "Indicators",
-                          ylab = "Countries")
+            {heatmap <- all_data %>%
+                        filter(Year == input$heatyear)%>%
+                        column_to_rownames(var = "Country")%>%
+                        select(input$heatindex)}
         else 
-            heatmap <- all_data %>%
-                filter(Year == input$heatyear) %>%
-                filter(Country %in% input$heatcountry)%>%
-                column_to_rownames(var = "Country") %>%
-                normalize() %>%
-                heatmaply(scale = 'none',
-                          dist_method = 'euclidean',
-                          hclust_method = 'ward.D', 
-                          seriate = 'OLO',
-                          colors = Blues,
-                          Colv=NA,
-                          k_row = 5,
-                          margins = c(NA,200,60,NA),
-                          fontsize_row = 4,
-                          fontsize_col = 5,
-                          #main="World Happiness Score and Variables by Country, 2018 \nDataTransformation using Normalise Method",
-                          xlab = "Indicators",
-                          ylab = "Countries")
+            {heatmap <- all_data %>%
+                        filter(Year == input$heatyear) %>%
+                        filter(Country %in% input$heatcountry) %>%
+                        column_to_rownames(var = "Country") %>%
+                        select(input$heatindex)}
+        heatmaply(normalize(heatmap),
+                  scale = input$scale,
+                  dist_method = input$distribution,
+                  hclust_method = input$hcluster, 
+                  seriate = input$seriate,
+                  k_row = input$cluster,
+                  colors = Blues,
+                  Colv=NA,
+                  #margins = c(10,50,50,NA),
+                  fontsize_row = 4,
+                  fontsize_col = 5,
+                  #main="World Happiness Score and Variables by Country, 2018 \nDataTransformation using Normalise Method",
+                  xlab = "Indicators",
+                  ylab = "Countries",
+                  main = ~paste("World Human Development Level and Variables by Country,",input$heatyear))%>%
+            layout(height = 600, width = 800)
 
         #heatmap_data <- all_data %>%
         #    filter(Year == input$heatyear) %>%
