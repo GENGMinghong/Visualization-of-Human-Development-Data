@@ -112,6 +112,8 @@ ui <- bootstrapPage(
                                           #selectInput('indicator', "Indicator", choices = colnames(all_data[, 6:ncol(all_data)])),
                                           #selectInput('Countries', NULL, choices = sort(as.character(all_data$Country) %>% unique)),
                                           ),
+                            #absolutePanel(id = "logo", class = "card", bottom = 20, left = 60, width = 80, fixed=TRUE, draggable = FALSE, height = "auto",
+                            #              tags$img(src='logo.jpg',height='40',width='80')),
                             absolutePanel(id = "controls", class = "panel panel-default",
                                           top = 80, right = 20, width = 250, fixed=TRUE,
                                           draggable = FALSE, height = "auto",
@@ -184,16 +186,73 @@ ui <- bootstrapPage(
                                          selectInput('dumbellindex','Choose Indexes', choices = indexchoice)),
                             mainPanel(plotlyOutput('dumbbell'))
                         )),
-               tabPanel("ZhuHonglu"),
+               tabPanel("ZhuHonglu",
+                        
+                        
+                        
+                        
+                        
+                        
+                        ),
                tabPanel("Data",
                         numericInput("maxrows", "Rows to show", 25),
                         verbatimTextOutput("rawtable"),
                         downloadButton("downloadCsv", "Download as CSV"),tags$br(),tags$br(),
-                        "The dataset is downloaded from Human Development Report and cleaned by the team members.")
-               ),
-               tabPanel("About us")
-    
-)
+                        "The dataset is downloaded from Human Development Report and cleaned by the team members."),
+               tabPanel("About",
+                        tags$div(
+                            tags$h4("Last update"), 
+                            h6(paste0(Sys.Date())),
+                            "The data used in this Shint Application is gathered from",
+                            tags$a(href="http://hdr.undp.org/en/data", "United Natioms Development Programme (UNDP)"),", in the research of Human Development Report.", tags$br(),
+                            #tags$br(),
+                            tags$h4("User Guide"),tags$br(),
+                            tags$h5("World Mapper"),tags$br(),
+                            "This panel provides...", tags$br(),
+                            
+                            
+                            
+                            
+                            
+                            
+                            tags$h4("Background"), 
+                            "In December 2019, cases of severe respiratory illness began to be reported across the city of Wuhan in China. 
+                        These were caused by a new type of coronavirus, and the disease is now commonly referred to as COVID-19.
+                        The number of COVID-19 cases started to escalate more quickly in mid-January and the virus soon spread beyond China's borders. 
+                        This story has been rapidly evolving ever since, and each day we are faced by worrying headlines regarding the current state of the outbreak.",
+                            tags$br(),tags$br(),
+                            "In isolation, these headlines can be hard to interpret. 
+                        How fast is the virus spreading? Are efforts to control the disease working? How does the situation compare with previous epidemics?
+                        This site is updated daily based on data published by Johns Hopkins University. 
+                        By looking beyond the headlines, we hope it is possible to get a deeper understanding of this unfolding pandemic.",
+                            tags$br(),tags$br(),
+                            "An article discussing this site was published in ",tags$a(href="https://theconversation.com/coronavirus-outbreak-a-new-mapping-tool-that-lets-you-scroll-through-timeline-131422", "The Conversation. "),
+                            "The map was also featured on the BBC World Service program",tags$a(href="https://www.bbc.co.uk/programmes/w3csym33", "Science in Action."),
+                            tags$br(),tags$br(),
+                            tags$h4("Code"),
+                            "Code and input data used to generate this Shiny mapping tool are available on ",tags$a(href="https://github.com/eparker12/nCoV_tracker", "Github."),
+                            tags$br(),tags$br(),tags$h4("Sources"),
+                            tags$b("2019-COVID cases: "), tags$a(href="https://github.com/CSSEGISandData/COVID-19/tree/master/csse_covid_19_data/csse_covid_19_time_series", "Johns Hopkins Center for Systems Science and Engineering github page,")," with additional information from the ",tags$a(href="https://www.who.int/emergencies/diseases/novel-coronavirus-2019/situation-reports", "WHO's COVID-19 situation reports."),
+                            " In previous versions of this site (up to 17th March 2020), updates were based solely on the WHO's situation reports.",tags$br(),
+                            tags$b("2003-SARS cases: "), tags$a(href="https://www.who.int/csr/sars/country/en/", "WHO situation reports"),tags$br(),
+                            tags$b("2009-H1N1 confirmed deaths: "), tags$a(href="https://www.who.int/csr/disease/swineflu/updates/en/", "WHO situation reports"),tags$br(),
+                            tags$b("2009-H1N1 projected deaths: "), "Model estimates from ", tags$a(href="https://journals.plos.org/plosmedicine/article?id=10.1371/journal.pmed.1001558", "GLaMOR Project"),tags$br(),
+                            tags$b("2009-H1N1 cases: "), tags$a(href="https://www.cdc.gov/flu/pandemic-resources/2009-h1n1-pandemic.html", "CDC"),tags$br(),
+                            tags$b("2009-H1N1 case fatality rate: "), "a systematic review by ", tags$a(href="https://www.ncbi.nlm.nih.gov/pubmed/24045719", "Wong et al (2009)"), "identified 
+                        substantial variation in case fatality rate estimates for the H1N1 pandemic. However, most were in the range of 10 to 100 per 100,000 symptomatic cases (0.01 to 0.1%).
+                        The upper limit of this range is used for illustrative purposes in the Outbreak comarisons tab.",tags$br(),
+                            tags$b("2014-Ebola cases: "), tags$a(href="https://www.cdc.gov/flu/pandemic-resources/2009-h1n1-pandemic.html", "CDC"),tags$br(),
+                            tags$b("Country mapping coordinates: "), tags$a(href="https://github.com/martynafford/natural-earth-geojson", "Martyn Afford's Github repository"),tags$br(),
+                            tags$br(),tags$br(),tags$h4("Authors"),
+                            "Dr Edward Parker, The Vaccine Centre, London School of Hygiene & Tropical Medicine",tags$br(),
+                            "Quentin Leclerc, Department of Infectious Disease Epidemiology, London School of Hygiene & Tropical Medicine",tags$br(),
+                            tags$br(),tags$br(),tags$h4("Contact"),
+                            "edward.parker@lshtm.ac.uk",tags$br(),tags$br(),
+                            tags$img(src = "vac_dark.png", width = "150px", height = "75px"), tags$img(src = "lshtm_dark.png", width = "150px", height = "75px")
+                        )
+               )
+) # finish navbarPage
+) # finish ui
 
 
 
