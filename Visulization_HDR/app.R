@@ -19,7 +19,8 @@ packages=c('ggpubr',
            'ggalt',
            'seriation', 
            'dendextend', 
-           'heatmaply')
+           'heatmaply',
+           )
 
 for(p in packages){library
     if (!require(p,character.only = T)){
@@ -31,7 +32,7 @@ for(p in packages){library
 # Import Data
 worldcountry = geojson_read("data/50m.geojson", what = "sp")
 worldcountry@data$NAME_LONG[worldcountry@data$NAME_LONG %in% c('Taiwan','Macao')] <- 'China'
-all_data = read_csv('data/data_cleaned/All_data.csv', row.names=NULL)
+all_data = read_csv('data/data_cleaned/All_data.csv')
 row.names(all_data)
 
 # set label content
@@ -71,7 +72,7 @@ seriate_choice <- c("OLO", "mean", "none", "GW")
 
 #######    DATA PRECESSING    #########
 # Extract Year from Table
-# 鐜板湪宸茬粡寮冪敤锛屼娇鐢ㄥ浐瀹氱殑鏃堕棿鑼冨洿 
+# 鐜板湪宸茬粡寮冪敤锛屼娇鐢ㄥ浐瀹氱殑鏃堕棿鑼冨�? 
 # min_year = min(HDI$Year)
 # max_year = 2018#max(HDI$year)
 
@@ -186,7 +187,10 @@ ui <- bootstrapPage(
                                          selectInput('dumbellindex','Choose Indexes', choices = indexchoice)),
                             mainPanel(plotlyOutput('dumbbell'))
                         )),
-               tabPanel("ZhuHonglu",
+               tabPanel("Zhu HongLu",
+                          
+                        
+                        
                         
                         
                         
@@ -274,7 +278,7 @@ server <- function(input,output,session) {
         leafletProxy("mymap") %>% 
             addPolygons(data = reactive_db(), 
                         smoothFactor = 0.2, 
-                        fillColor = ~colorQuantile("Blues",domain = reactive_db()$HDI)(reactive_db()$HDI), # 是轮廓内的颜色
+                        fillColor = ~colorQuantile("Blues",domain = reactive_db()$HDI)(reactive_db()$HDI), # 是轮廓内的颜�?
                         fillOpacity = 0.7,
                         color="white", #stroke color
                         weight = 1, # stroke width in pixels
@@ -301,7 +305,7 @@ server <- function(input,output,session) {
             addPolygons(data = reactive_db(), 
                         smoothFactor = 0.2, 
                         fillColor = ~colorQuantile("Blues",domain = reactive_db()$Gender_Development_Index
-                        )(reactive_db()$Gender_Development_Index), # 是轮廓内的颜色
+                        )(reactive_db()$Gender_Development_Index), # 是轮廓内的颜�?
                         fillOpacity = 0.7,
                         color="white", #stroke color
                         weight = 1, # stroke width in pixels
@@ -325,7 +329,7 @@ server <- function(input,output,session) {
             addPolygons(data = reactive_db(), 
                         smoothFactor = 0.2, 
                         fillColor = ~colorQuantile("Blues",domain = reactive_db()$Gender_Inequality_Index
-                        )(reactive_db()$Gender_Inequality_Index), # 是轮廓内的颜色
+                        )(reactive_db()$Gender_Inequality_Index), # 是轮廓内的颜�?
                         fillOpacity = 0.7,
                         color="white", #stroke color
                         weight = 1, # stroke width in pixels
