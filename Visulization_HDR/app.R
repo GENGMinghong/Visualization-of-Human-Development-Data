@@ -71,7 +71,7 @@ seriate_choice <- c("OLO", "mean", "none", "GW")
 
 #######    DATA PRECESSING    #########
 # Extract Year from Table
-# 现在已经弃用，使用固定的时间范围 
+# 鐜板湪宸茬粡寮冪敤锛屼娇鐢ㄥ浐瀹氱殑鏃堕棿鑼冨洿 
 # min_year = min(HDI$Year)
 # max_year = 2018#max(HDI$year)
 
@@ -83,11 +83,11 @@ ui <- bootstrapPage(
     navbarPage(theme = shinytheme("flatly"), collapsible = TRUE, "Human Development Report", id="nav",
                tabPanel("World mapper",
                         div(class="outer",
-                            tags$head(includeCSS("styles.css")), #使悬浮边栏变透明
+                            tags$head(includeCSS("styles.css")), #浣挎偓娴竟鏍忓彉閫忔槑
                             leafletOutput("mymap",width = "100%", height = "100%"), # output World Map
                             absolutePanel(id = "controls", class = "panel panel-default",
                                           top = 80, left = 20, width = 250, fixed=TRUE,
-                                          draggable = FALSE, height = "auto", # draggable 控制能否移动
+                                          draggable = FALSE, height = "auto", # draggable 鎺у埗鑳藉惁绉诲姩
                                           
                                           h4(textOutput("HDI_text"), align = "right",style="color:#cc4c02"),
                                           
@@ -109,6 +109,7 @@ ui <- bootstrapPage(
                                                       timeFormat = '%Y',
                                                       #animate=animationOptions(interval = 3000, loop = FALSE),
                                           ),
+                                          #selectInput('indicator', "Indicator", choices = colnames(all_data[, 6:ncol(all_data)])),
                                           #selectInput('Countries', NULL, choices = sort(as.character(all_data$Country) %>% unique)),
                                           ),
                             absolutePanel(id = "controls", class = "panel panel-default",
@@ -129,10 +130,22 @@ ui <- bootstrapPage(
                                           h6(textOutput("country_GDI")),
                                           h6(textOutput("country_GII"))
                                           ),
-                            
                                           #style = "opacity: 0.65; z-index: 10;", ## z-index modification
                             )),
-               tabPanel("Indexes"),
+               tabPanel("Indexes",
+                        sidebarLayout(
+                            sidebarPanel(top = 80, left = 20,# width = 250,
+                                         width = 3,
+                                         selectInput(inputId = 'GraphType','Graph Type:', choices = c("Heatmap",
+                                                                                                      "Line",
+                                                                                                      "Density",
+                                                                                                      "Dumbbell"))
+                            ),
+                            mainPanel(
+                                h6("To be added...")
+                            )
+               ),
+               ),
                tabPanel("HDI",
                             sidebarLayout(
                                 sidebarPanel(top = 80, left = 20,# width = 250,unique(all_data$Country)
@@ -150,7 +163,7 @@ ui <- bootstrapPage(
                                 )
                             )
                         ),
-               tabPanel("Heatmap",
+               tabPanel("Correlation",
                         sidebarLayout(
                             sidebarPanel(top = 80, left = 20, width = 3,
                                          selectInput('heatcountry','Choose Countries', choices = unique(all_data$Country), multiple = TRUE),
@@ -171,12 +184,15 @@ ui <- bootstrapPage(
                                          selectInput('dumbellindex','Choose Indexes', choices = indexchoice)),
                             mainPanel(plotlyOutput('dumbbell'))
                         )),
-               tabPanel("Population"),
-               tabPanel("Health"),
-               tabPanel("Education"),
-               tabPanel("Data"),
+               tabPanel("ZhuHonglu"),
+               tabPanel("Data",
+                        numericInput("maxrows", "Rows to show", 25),
+                        verbatimTextOutput("rawtable"),
+                        downloadButton("downloadCsv", "Download as CSV"),tags$br(),tags$br(),
+                        "The dataset is downloaded from Human Development Report and cleaned by the team members.")
+               ),
                tabPanel("About us")
-    )
+    
 )
 
 
@@ -190,7 +206,7 @@ server <- function(input,output,session) {
         worldcountry %>%
             merge(filter(all_data,Year==input$Year),by.x = "NAME_LONG", by.y = "Country") # here we can change the input of data
     })
-
+    
     output$mymap <- renderLeaflet({ 
         basemap
     })
@@ -221,12 +237,12 @@ server <- function(input,output,session) {
                         group = "Human Development Index",
                         #popup = popup,
                         #popupOptions = popupOptions(maxWidth ="100%", closeOnClick = TRUE),
-                       
-                        ) %>%
+                        
+            ) %>%
             addPolygons(data = reactive_db(), 
                         smoothFactor = 0.2, 
-                        fillColor = ~colorQuantile("Greens",domain = reactive_db()$Gender_Development_Index
-                                                   )(reactive_db()$Gender_Development_Index), # 是轮廓内的颜色
+                        fillColor = ~colorQuantile("Blues",domain = reactive_db()$Gender_Development_Index
+                        )(reactive_db()$Gender_Development_Index), # 是轮廓内的颜色
                         fillOpacity = 0.7,
                         color="white", #stroke color
                         weight = 1, # stroke width in pixels
@@ -249,7 +265,7 @@ server <- function(input,output,session) {
             # add gender inequality index 
             addPolygons(data = reactive_db(), 
                         smoothFactor = 0.2, 
-                        fillColor = ~colorQuantile("Oranges",domain = reactive_db()$Gender_Inequality_Index
+                        fillColor = ~colorQuantile("Blues",domain = reactive_db()$Gender_Inequality_Index
                         )(reactive_db()$Gender_Inequality_Index), # 是轮廓内的颜色
                         fillOpacity = 0.7,
                         color="white", #stroke color
@@ -270,15 +286,19 @@ server <- function(input,output,session) {
                             textsize = "15px",
                             direction = "auto"),
                         group = "Gender Equality Index") %>%
-                        #popup = popup,
-                        #popupOptions = popupOptions(maxWidth ="100%", closeOnClick = TRUE)
+            #popup = popup,
+            #popupOptions = popupOptions(maxWidth ="100%", closeOnClick = TRUE)
             addLayersControl(
                 position = "bottomright",
                 baseGroups = c("Human Development Index","Gender Development Index","Gender Inequality Index"),# 只可以选择一个的group
                 #overlayGroups = c("Human Development Index","Gender Development Index"), # 可以堆叠的group
                 options = layersControlOptions(collapsed = FALSE)) %>%
+            #addLegend(
+            #    pal = ~colorQuantile("Blues",domain = reactive_db()$HDI, values = ~density, 
+            #                         opacity = 0.7, title = NULL,
+            #    position = "bottomright"
             hideGroup(c("Gender Development Index","Gender Inequality Index"))
-                      })
+    })
     output$distribution_HDI = renderPlot({
         all_data %>%
             filter(Year==input$Year) %>% 
@@ -377,11 +397,11 @@ server <- function(input,output,session) {
     
     observeEvent(input$select_map_of_a_country, {
         mapdata <- subset(worldcountry, NAME_LONG == input$select_map_of_a_country)
-            rgn <- mapdata@bbox %>% as.vector()
-            leafletProxy("map_on_the_right", session) %>% clearShapes() %>%
-                flyToBounds(rgn[1], rgn[2], rgn[3], rgn[4]) %>%
-                addPolygons(data = mapdata, fill = T, fillColor = 'gold', color = 'white')
-            })
+        rgn <- mapdata@bbox %>% as.vector()
+        leafletProxy("map_on_the_right", session) %>% clearShapes() %>%
+            flyToBounds(rgn[1], rgn[2], rgn[3], rgn[4]) %>%
+            addPolygons(data = mapdata, fill = T, fillColor = 'gold', color = 'white')
+    })
     # Right Panel Function 2: HDI, GDI and GII for a country in a certain year.
     # Build a dynamic data table
     reactive_all_data_one_country = reactive({
@@ -470,12 +490,29 @@ server <- function(input,output,session) {
     })
     output$GNItrend <- renderPlotly({reactive_GNI()})
     
-
+    
+    #_________Page : Data _______________________
+    # output to download data
+    output$downloadCsv <- downloadHandler(
+        filename = function() {
+            paste("Human_Development_Report", ".csv", sep="")
+        },
+        content = function(file) {
+            write.csv(all_data, file)
+        }
+    )
+    
+    output$rawtable <- renderPrint({
+        orig <- options(width = 1000)
+        print(tail(all_data, input$maxrows), row.names = FALSE)
+        options(orig)
+    })
     
     #______________Heatmap Page__________________________________________________
 
     #_______ Writer: JI XIAOJUN________________________________________________
     output$heatmap <- renderPlotly({
+
         filter_year <- all_data %>%
             filter(Year == input$heatyear)
         
@@ -492,7 +529,7 @@ server <- function(input,output,session) {
                   hclust_method = input$hcluster, 
                   seriate = input$seriate)
     })
-
+    
     
     #______________Dumbbel Chart Page____________________________________________
     #_______ Writer: JI XIAOJUN  ________________________________________________ 
