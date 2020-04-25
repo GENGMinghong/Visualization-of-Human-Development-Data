@@ -19,12 +19,6 @@ library(gapminder)
 library(ggalt)
 library(seriation)
 library(dendextend)
-
-
-
-
-
-
 #packages=c('ggpubr',plotly','tidyverse','readxl','Hmisc','geojsonio','sf','tmap',
 #           'maptools','shiny','shinythemes','leaflet','rgdal','RColorBrewer',
 #           'heatmaply','shinyHeatmaply','gapminder','ggalt','seriation', 'dendextend')
@@ -36,12 +30,11 @@ library(dendextend)
 #    library(p,character.only = T)
 #}  
 
+
 # Import Data
 worldcountry = geojson_read("data/50m.geojson", what = "sp")
 worldcountry@data$NAME_LONG[worldcountry@data$NAME_LONG %in% c('Taiwan','Macao')] <- 'China'
 all_data = read_csv('data/data_cleaned/All_data.csv')
-#all_data = read_csv('data/data_cleaned/All_data.csv', row.names=NULL) # for heatmap part
-#rownames(all_data)
 
 # set label content
 #labels <- sprintf(
@@ -63,7 +56,7 @@ basemap = leaflet(worldcountry) %>%
 
 # Prepare for HDI page
 names(all_data)[1]='Continent'
-#head(all_data)
+head(all_data)
 
 
 # Prepare for choosing index
@@ -80,7 +73,6 @@ seriate_choice <- c("OLO", "mean", "none", "GW")
 
 #######    DATA PRECESSING    #########
 # Extract Year from Table
-# 閻滄澘婀鑼病瀵啰鏁ら敍灞煎▏閻劌娴愮€规氨娈戦弮鍫曟？閼煎啫娲? 
 # min_year = min(HDI$Year)
 # max_year = 2018#max(HDI$year)
 
@@ -92,11 +84,11 @@ ui<- bootstrapPage(
     navbarPage(theme = shinytheme("flatly"), collapsible = TRUE, "Human Development Report", id="nav",
                tabPanel("Indicator Map",
                         div(class="outer",
-                            tags$head(includeCSS("styles.css")), #娴ｆ寧鍋撳ù顔跨珶閺嶅繐褰夐柅蹇旀
+                            tags$head(includeCSS("styles.css")), 
                             leafletOutput("mymap",width = "100%", height = "100%"), # output World Map
                             absolutePanel(id = "controls", class = "panel panel-default",
                                           top = 80, left = 20, width = 250, fixed=TRUE,
-                                          draggable = FALSE, height = "auto", # draggable 閹貉冨煑閼宠棄鎯佺粔璇插З
+                                          draggable = FALSE, height = "auto", # draggable 
                                           
                                           h4(textOutput("HDI_text"), align = "right",style="color:#cc4c02"),
                                           
@@ -168,14 +160,19 @@ ui<- bootstrapPage(
                                              ),
                                 mainPanel(
                                     tabsetPanel(
-                                        tabPanel("HDI",plotlyOutput(outputId = "HDItrend")),
-                                        tabPanel("Life Expectancy", plotlyOutput(outputId = "LEtrend")),
-                                        tabPanel("Mean of Schooling Year", plotlyOutput(outputId = "MStrend")),
-                                        tabPanel("Expected Schooling Year", plotlyOutput(outputId = "EStrend")),
-                                        tabPanel("Gross National Income", plotlyOutput(outputId = "GNItrend"))
+                                        tabPanel(
+                                            absolutePanel(id = "HDI", plotlyOutput(outputId = "HDItrend"),class = "panel panel-default",
+                                                          top = 400, left = 20, width = 250, fixed=TRUE, 
+                                                          draggable = FALSE, height = "auto"),
+                                                 fluidRow(class = 'row1', 
+                                                          column(6, plotlyOutput(outputId = "LEtrend", height =200)),
+                                                          column(6, plotlyOutput(outputId = "MStrend", height =200))),
+                                                 fluidRow(class = 'row2', 
+                                                          column(6, plotlyOutput(outputId = "EStrend", height = 210)),
+                                                          column(6, plotlyOutput(outputId = "GNItrend", height = 210))))
+                                        )
                                     )
                                 )
-                            )
                         ),
                tabPanel("Correlation",
                         sidebarLayout(
@@ -183,7 +180,7 @@ ui<- bootstrapPage(
                                          selectInput('heatcountry','Choose Countries', choices = append('All',unique(all_data$Country)), multiple = TRUE),
                                          selectInput('heatindex','Choose Indexes', choices = indexchoice, multiple = TRUE),
                                          sliderInput('heatyear','Choose a year', min = 1990, max = 2018, value = 2018, step = 1),
-                                         sliderInput('cluster', 'Input the Number of Clusters', min = 2, max = 4, value = 3),
+                                         textInput('cluster', 'Input the Number of Clusters'),
                                          selectInput('scale','Choose Scale',choices = scale_choice),
                                          selectInput('hcluster', 'Choose Cluster Method', choices = hcluster_choice),
                                          selectInput('distribution', 'Choose Distribution Method', choices = distribution_choice),
@@ -199,14 +196,10 @@ ui<- bootstrapPage(
                                          selectInput('dumbellindex','Choose Indexes', choices = indexchoice)),
                             mainPanel(plotlyOutput('dumbbell'))
                         )),
-               tabPanel("ZhuHonglu",
-                        
-                        
-                        
-                        
-                        
-                        
-                        ),
+               tabPanel("Bubble plot",
+                        mainPanel(
+                            plotlyOutput(outputId = "bubbleplot")
+                        )),
                tabPanel("Data",
                         numericInput("maxrows", "Rows to show", 25),
                         verbatimTextOutput("rawtable"),
@@ -274,13 +267,9 @@ ui<- bootstrapPage(
 ) # finish navbarPage
 ) # finish ui
 
-
-
-# Define server logic required to draw a histogram
+# Sever Design
 server <- function(input,output,session) {
-    
-    #________Mapper Page____________________________________________________________
-    #______Writer: GENG Minghong____________________________________________________
+    #________Mapper Page, Author: GENG Minghong__________________________________________________________
     reactive_db = reactive({
         worldcountry %>%
             merge(filter(all_data,Year==input$Year),by.x = "NAME_LONG", by.y = "Country") # here we can change the input of data
@@ -294,7 +283,7 @@ server <- function(input,output,session) {
         leafletProxy("mymap") %>% 
             addPolygons(data = reactive_db(), 
                         smoothFactor = 0.2, 
-                        fillColor = ~colorQuantile("Blues",domain = reactive_db()$HDI)(reactive_db()$HDI), # 鏄疆寤撳唴鐨勯鑹?
+                        fillColor = ~colorQuantile("Blues",domain = reactive_db()$HDI)(reactive_db()$HDI), 
                         fillOpacity = 0.7,
                         color="white", #stroke color
                         weight = 1, # stroke width in pixels
@@ -303,7 +292,7 @@ server <- function(input,output,session) {
                             color = "#666",
                             #dashArray = "",
                             fillOpacity = 0.7,
-                            bringToFront = TRUE #Whether the shape should be brought to front on hover
+                            bringToFront = TRUE # Whether the shape should be brought to front on hover
                         ),
                         label = sprintf(
                             "<strong>%s</strong><br/>HDI Index: %g",
@@ -321,7 +310,7 @@ server <- function(input,output,session) {
             addPolygons(data = reactive_db(), 
                         smoothFactor = 0.2, 
                         fillColor = ~colorQuantile("Blues",domain = reactive_db()$Gender_Development_Index
-                        )(reactive_db()$Gender_Development_Index), # 鏄疆寤撳唴鐨勯鑹?
+                        )(reactive_db()$Gender_Development_Index), 
                         fillOpacity = 0.7,
                         color="white", #stroke color
                         weight = 1, # stroke width in pixels
@@ -345,7 +334,7 @@ server <- function(input,output,session) {
             addPolygons(data = reactive_db(), 
                         smoothFactor = 0.2, 
                         fillColor = ~colorQuantile("Blues",domain = reactive_db()$Gender_Inequality_Index
-                        )(reactive_db()$Gender_Inequality_Index), # 鏄疆寤撳唴鐨勯鑹?
+                        )(reactive_db()$Gender_Inequality_Index), 
                         fillOpacity = 0.7,
                         color="white", #stroke color
                         weight = 1, # stroke width in pixels
@@ -369,8 +358,8 @@ server <- function(input,output,session) {
             #popupOptions = popupOptions(maxWidth ="100%", closeOnClick = TRUE)
             addLayersControl(
                 position = "bottomright",
-                baseGroups = c("Human Development Index","Gender Development Index","Gender Inequality Index"),# 鍙彲浠ラ€夋嫨涓€涓殑group
-                #overlayGroups = c("Human Development Index","Gender Development Index"), # 鍙互鍫嗗彔鐨刧roup
+                baseGroups = c("Human Development Index","Gender Development Index","Gender Inequality Index"),
+                #overlayGroups = c("Human Development Index","Gender Development Index"), 
                 options = layersControlOptions(collapsed = FALSE)) %>%
             #addLegend("bottomright", pal = colorQuantile("Blues",domain = reactive_db()$HDI),
             #          values = ~reactive_db()$HDI,title = "<small>Index Value</small>") %>%
@@ -509,7 +498,7 @@ server <- function(input,output,session) {
     #_______ Writer: JI Xiao Jun ____________________________________________
     
     ## filter data6
-    updateSelectInput(session,inputId='country', label = 'Choose a Country',choices= c(sort(as.character(all_data$Country) %>% unique)))
+    #updateSelectInput(session,inputId='country', label = 'Choose a Country',choices= c(sort(as.character(all_data$Country) %>% unique)))
     extract_data <- reactive({
         all_data %>%
             filter(Country == input$country,
@@ -523,7 +512,7 @@ server <- function(input,output,session) {
             plot_ly(x = ~Year, y = ~HDI, color = ~Country, hoverinfo = "text",
                     text = ~paste(input$country, HDI)) %>%
             add_lines()%>%
-            layout(showlegend=TRUE)
+            layout(showlegend=FALSE, height =200, title = 'Human Development Index')
     })
     
     output$HDItrend <- renderPlotly({reactive_HDI()})
@@ -534,7 +523,7 @@ server <- function(input,output,session) {
             plot_ly(x = ~Year, y = ~Life_Expectancy_at_Birth, color = ~Country, hoverinfo = "text",
                     text = ~paste(input$country, Life_Expectancy_at_Birth)) %>%
             add_lines()%>%
-            layout(showlegend=TRUE)
+            layout(showlegend=FALSE, height =200, title = 'Life Expectancy at Birth')
     })
     output$LEtrend <- renderPlotly({reactive_LifeExpectancy()})
     
@@ -544,7 +533,7 @@ server <- function(input,output,session) {
             plot_ly(x = ~Year, y=~Expected_Years_of_Schooling, color = ~Country, hoverinfo = "text",
                     text = ~paste(input$country, Expected_Years_of_Schooling)) %>%
             add_lines()%>%
-            layout(showlegend=TRUE)
+            layout(showlegend=FALSE, height =200, title = 'Expected Years of Schooling')
     })
     output$EStrend <- renderPlotly({reactive_ExpectedSchooling()})
     
@@ -554,7 +543,7 @@ server <- function(input,output,session) {
             plot_ly(x = ~Year, y=~Mean_Years_of_Schooling, color = ~Country, hoverinfo = "text",
                     text = ~paste(input$country, Mean_Years_of_Schooling)) %>%
             add_lines()%>%
-            layout(showlegend=TRUE)
+            layout(showlegend=FALSE, height =200, title = 'Mean Years of Schooling')
     })
     output$MStrend <- renderPlotly({reactive_MeanSchooling()})
     
@@ -564,7 +553,7 @@ server <- function(input,output,session) {
             plot_ly(x = ~Year, y=~Gross_National_Income_per_capita, color = ~Country, hoverinfo = "text",
                     text = ~paste(input$country, Gross_National_Income_per_capita)) %>%
             add_lines()%>%
-            layout(showlegend=TRUE)
+            layout(legend = list(orientation = 'h'), height =200,  title = 'Gross National Income per capita')
     })
     output$GNItrend <- renderPlotly({reactive_GNI()})
     
@@ -587,7 +576,6 @@ server <- function(input,output,session) {
     })
     
     #______________Heatmap Page__________________________________________________
-
     #_______ Writer: JI XIAOJUN________________________________________________
     output$heatmap <- renderPlotly({
         if (input$heatcountry == 'All')
@@ -606,7 +594,7 @@ server <- function(input,output,session) {
                   dist_method = input$distribution,
                   hclust_method = input$hcluster, 
                   seriate = input$seriate,
-                  k_row = input$cluster,
+                  #input$cluster,
                   colors = Blues,
                   Colv=NA,
                   #margins = c(10,50,50,NA),
@@ -660,8 +648,36 @@ server <- function(input,output,session) {
             layout(title = "Journey of All Countries in xxx", 
                    xaxis = list(title = input$dumbellindex, 
                                 tickfont = list(color = "#e6e6e6")), 
-                   yaxis = list(title = "Countries", tickfont = list(color = "#e6e6e6")), 
-                   plot_bgcolor = "#808080", paper_bgcolor ="#808080")
+                   yaxis = list(title = "Countries", tickfont = list(color = "#e6e6e6")))
+    })
+  
+    #__________Page 5 : Bubble Plot _________________________________________
+    #__________Writer: Zhu Honglu ___________________________________________
+
+    output$bubbleplot = renderPlotly({
+        wbstats::wb(indicator = c("SP.DYN.LE00.IN", "NY.GDP.PCAP.CD", "SP.POP.TOTL"), 
+                    country = "countries_only", startdate = 1990, enddate = 2018)  %>% 
+            # pull down mapping of countries to regions and join
+            dplyr::left_join(wbstats::wbcountries() %>% 
+                             dplyr::select(iso3c, region)) %>% 
+                             dplyr::select(iso3c, region)) %>% 
+            # spread the three indicators
+            tidyr::pivot_wider(id_cols = c("date", "country", "region"), names_from = indicator, values_from = value) %>% 
+            # plot the data
+            ggplot2::ggplot(aes(x = log(`GDP per capita (current US$)`), y = `Life expectancy at birth, total (years)`,
+                                size = `Population, total`)) +
+            ggplot2::geom_point(alpha = 0.5, aes(color = region)) +
+            ggplot2::scale_size(range = c(.1, 16), guide = FALSE) +
+            ggplot2::scale_x_continuous(limits = c(2.5, 12.5)) +
+            ggplot2::scale_y_continuous(limits = c(30, 90)) +
+            viridis::scale_color_viridis(discrete = TRUE, name = "Region", option = "plasma") +
+            ggplot2::labs(x = "Log GDP per capita",
+                          y = "Life expectancy at birth") +
+            ggplot2::theme_classic() +
+            ggplot2::geom_text(aes(x = 7.5, y = 60, label = date), size = 14, color = 'lightgrey', family = 'Oswald') +
+            # animate it over years
+            gganimate::transition_states(date, transition_length = 1, state_length = 1) +
+            gganimate::ease_aes('cubic-in-out')
     })
 }
 
