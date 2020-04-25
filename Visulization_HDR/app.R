@@ -20,7 +20,14 @@ packages=c('ggpubr',
            'ggalt',
            'seriation', 
            'dendextend', 
-           'heatmaply')
+           'heatmaply',
+           'ggplot2',
+           'viridis',
+           'gganimate',
+           'wbstats',
+           'gifski',
+           'av',
+           'magick')
 
 for(p in packages){library
     if (!require(p,character.only = T)){
@@ -184,7 +191,7 @@ ui <- bootstrapPage(
                                          selectInput('heatcountry','Choose Countries', choices = append('All',unique(all_data$Country)), multiple = TRUE),
                                          selectInput('heatindex','Choose Indexes', choices = indexchoice, multiple = TRUE),
                                          sliderInput('heatyear','Choose a year', min = 1990, max = 2018, value = 2018, step = 1),
-                                         sliderInput('cluster', 'Input the Number of Clusters', min = 2, max = 4, value = 3),
+                                         textInput('cluster', 'Input the Number of Clusters'),
                                          selectInput('scale','Choose Scale',choices = scale_choice),
                                          selectInput('hcluster', 'Choose Cluster Method', choices = hcluster_choice),
                                          selectInput('distribution', 'Choose Distribution Method', choices = distribution_choice),
@@ -200,14 +207,11 @@ ui <- bootstrapPage(
                                          selectInput('dumbellindex','Choose Indexes', choices = indexchoice)),
                             mainPanel(plotlyOutput('dumbbell'))
                         )),
-               tabPanel("ZhuHonglu",
-                        
-                        
-                        
-                        
-                        
-                        
-                        ),
+               tabPanel("Bubble plot",
+                        mainPanel(
+                            plotlyOutput(outputId = "bubbleplot")
+                            
+                        )),
                tabPanel("Data",
                         numericInput("maxrows", "Rows to show", 25),
                         verbatimTextOutput("rawtable"),
@@ -603,7 +607,7 @@ server <- function(input,output,session) {
                   dist_method = input$distribution,
                   hclust_method = input$hcluster, 
                   seriate = input$seriate,
-                  k_row = input$cluster,
+                  #input$cluster,
                   colors = Blues,
                   Colv=NA,
                   #margins = c(10,50,50,NA),
@@ -657,9 +661,37 @@ server <- function(input,output,session) {
             layout(title = "Journey of All Countries in xxx", 
                    xaxis = list(title = input$dumbellindex, 
                                 tickfont = list(color = "#e6e6e6")), 
-                   yaxis = list(title = "Countries", tickfont = list(color = "#e6e6e6")), 
-                   plot_bgcolor = "#808080", paper_bgcolor ="#808080")
+                   yaxis = list(title = "Countries", tickfont = list(color = "#e6e6e6")))
     })
+    
+    #__________Page 5 : Bubble Plot _________________________________________
+    #__________Writer: Zhu Honglu ___________________________________________
+    
+    output$bubbleplot = renderPlotly({
+        wbstats::wb(indicator = c("SP.DYN.LE00.IN", "NY.GDP.PCAP.CD", "SP.POP.TOTL"), 
+                    country = "countries_only", startdate = 1990, enddate = 2018)  %>% 
+            # pull down mapping of countries to regions and join
+            dplyr::left_join(wbstats::wbcountries() %>% 
+                             dplyr::select(iso3c, region)) %>% 
+            # spread the three indicators
+            tidyr::pivot_wider(id_cols = c("date", "country", "region"), names_from = indicator, values_from = value) %>% 
+            # plot the data
+            ggplot2::ggplot(aes(x = log(`GDP per capita (current US$)`), y = `Life expectancy at birth, total (years)`,
+                                size = `Population, total`)) +
+            ggplot2::geom_point(alpha = 0.5, aes(color = region)) +
+            ggplot2::scale_size(range = c(.1, 16), guide = FALSE) +
+            ggplot2::scale_x_continuous(limits = c(2.5, 12.5)) +
+            ggplot2::scale_y_continuous(limits = c(30, 90)) +
+            viridis::scale_color_viridis(discrete = TRUE, name = "Region", option = "plasma") +
+            ggplot2::labs(x = "Log GDP per capita",
+                          y = "Life expectancy at birth") +
+            ggplot2::theme_classic() +
+            ggplot2::geom_text(aes(x = 7.5, y = 60, label = date), size = 14, color = 'lightgrey', family = 'Oswald') +
+            # animate it over years
+            gganimate::transition_states(date, transition_length = 1, state_length = 1) +
+            gganimate::ease_aes('cubic-in-out')
+    })
+    
 }
 
 
