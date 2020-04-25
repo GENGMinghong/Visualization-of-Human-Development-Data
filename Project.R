@@ -1,9 +1,36 @@
+packages=c('corrplot',
+           'ggpubr',
+           'plotly',
+           'tidyverse',
+           'readxl',
+           'Hmisc', 
+           'geojsonio',
+           'sf', 
+           'tmap',
+           'spData',
+           'maptools',
+           'shiny',
+           'shinythemes',
+           'leaflet',
+           'RColorBrewer',
+           'rnaturalearth',
+           'rnaturalearthdata',
+           'hrbrthemes',
+           "WDI",
+           "ggvis",
+           'reshape2')
+
+for(p in packages){library
+  if (!require(p,character.only = T)){
+    install.packages(p)
+  }
+  library(p,character.only = T)
+}  
+
+
+
 ### This part is done by ZHU Honglu
 ### This part has not been merged.
-
-library(shiny)
-library(WDI)
-library(ggvis)
 
 indicator2 <- WDI(country="all", indicator=c("NY.GDP.PCAP.CD", "SP.POP.TOTL", "SP.DYN.LE00.IN"), start=2011, end=2018, extra = TRUE)
 drops <- c("iso2c","iso3c", "capital", "longitude", "latitude", "income", "lending")
@@ -43,30 +70,7 @@ server <- function(input, output) {
 shinyApp(ui = ui, server = server)
 
 # load packages
-packages=c('corrplot',
-           'ggpubr',
-           'plotly',
-           'tidyverse',
-           'readxl',
-           'Hmisc', 
-           'geojsonio',
-           'sf', 
-           'tmap',
-           'spData',
-           'maptools',
-           'shiny',
-           'shinythemes',
-           'leaflet',
-           'RColorBrewer',
-           'rnaturalearth',
-           'rnaturalearthdata')
 
-for(p in packages){library
-  if (!require(p,character.only = T)){
-    install.packages(p)
-  }
-  library(p,character.only = T)
-}  
 
 # and next
 # try to draw a map
@@ -242,3 +246,98 @@ temp=all_data %>%
     HDI = mean(HDI),
     number_of_distinct_orders = length(unique(Country))) %>%
   ungroup()
+
+#______________Draw a density graph___________________
+
+density_plot_2018=all_data %>%
+  filter(Year==2018) %>%
+  ggplot(aes(x=Gender_Inequality_Index)) +
+  geom_density(fill="Region", color="#e9ecef", alpha=0.8) +
+  ggtitle("Night price distribution of Airbnb appartements") +
+  theme_ipsum()
+ggplotly(density_plot_2018)
+
+#___________Draw a sparkline__________________________
+
+# data wraggling:
+Country_all_years_data = all_data %>%
+  filter(Country == 'China')
+
+# at first , we keep all the variables and 
+# later we will decide which part of these variables will be kept.
+# Now transform the data in a tidy form.
+# indicator, year and value.
+Country_all_years_data = all_data %>%
+  filter(Country == 'China') %>%
+  subset(select = -c(Continent,Region,Country,Level)) %>%
+  melt(id=c("Year"))
+
+# now we can try to creat a sparkline
+Country_all_years_data = all_data %>%
+  filter(Country == 'China') %>%
+  #filter(Year >= 2010) %>%
+  subset(select = c(Year,HDI,
+                    Gender_Development_Index,
+                    Gender_Inequality_Index,
+                    Total_Unemployment_Rate,
+                    Education_Index
+                    )) %>%
+  melt(id=c("Year")) %>%
+  drop_na() %>%
+  ggplot(aes(x=Year, y=value)) +
+  facet_grid(variable ~ ., scales = "free_y") +
+  geom_line()+
+  theme_bw()+
+  theme(axis.text.x = element_text(angle = 60, hjust = 1))
+
+ggplotly(Country_all_years_data)
+
+
+#=========
+worldcountry %>%
+  merge(filter(all_data,Year==2018) %>%
+          select(Country,Year,HDI),by.x = "NAME_LONG", by.y = "Country") #%>%# here we can change the input of data
+
+#______________________-
+Sys.Date()
+
+#__________
+heatmap_data <- all_data %>%
+  filter(Year == 2018) %>%
+  filter(Country %in% c('China','Australia'))%>%
+  select(Country,HDI,Gender_Development_Index,Gender_Inequality_Index)
+
+row.names(heatmap_data) <- heatmap_data$Country
+
+heatmap_data <- heatmap_data %>%
+  select(-Country)
+
+heatmap_matrix <- data.matrix(heatmap_data)
+
+row.names(heatmap_matrix) <- heatmap_data$Country
+
+heatmap_data <- heatmap_data %>%
+  select(-Country)
+
+heatmap_matrix <-heatmap_matrix[,-1]
+
+normalize(heatmap_matrix)
+
+temp= heatmaply(heatmap_matrix,
+          scale = 'none',
+          dist_method = 'euclidean',
+          hclust_method = 'ward.D', 
+          seriate = 'OLO',
+          colors = Blues,
+          Colv=NA,
+          #k_row = 2,
+          margins = c(NA,200,60,NA),
+          fontsize_row = 4,
+          fontsize_col = 5,
+          main="World Happiness Score and Variables by Country, 2018 \nDataTransformation using Normalise Method",
+          xlab = "World Happiness Indicators",
+          ylab = "World Countries")
+temp
+
+heatmaply(all_data %>% 
+            filter(Year==2018))
