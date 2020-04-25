@@ -28,7 +28,6 @@ packages=c('ggpubr',
            'av',
            'magick')
 
-
 for(p in packages){library
     if (!require(p,character.only = T)){
         install.packages(p)
@@ -166,22 +165,30 @@ ui<- bootstrapPage(
                                              ),
                                 mainPanel(
                                     tabsetPanel(
-                                        tabPanel("HDI",plotlyOutput(outputId = "HDItrend")),
-                                        tabPanel("Life Expectancy", plotlyOutput(outputId = "LEtrend")),
-                                        tabPanel("Mean of Schooling Year", plotlyOutput(outputId = "MStrend")),
-                                        tabPanel("Expected Schooling Year", plotlyOutput(outputId = "EStrend")),
-                                        tabPanel("Gross National Income", plotlyOutput(outputId = "GNItrend"))
+                                        tabPanel(
+                                            absolutePanel(id = "HDI", plotlyOutput(outputId = "HDItrend"),class = "panel panel-default",
+                                                          top = 400, left = 20, width = 250, fixed=TRUE, 
+                                                          draggable = FALSE, height = "auto"),
+                                                 fluidRow(class = 'row1', 
+                                                          column(6, plotlyOutput(outputId = "LEtrend", height =200)),
+                                                          column(6, plotlyOutput(outputId = "MStrend", height =200))),
+                                                 fluidRow(class = 'row2', 
+                                                          column(6, plotlyOutput(outputId = "EStrend", height = 210)),
+                                                          column(6, plotlyOutput(outputId = "GNItrend", height = 210))))
+
+                                        )
                                     )
                                 )
-                            )
+                            
                         ),
+                            
                tabPanel("Correlation",
                         sidebarLayout(
                             sidebarPanel(top = 80, left = 20, width = 3,
                                          selectInput('heatcountry','Choose Countries', choices = append('All',unique(all_data$Country)), multiple = TRUE),
                                          selectInput('heatindex','Choose Indexes', choices = indexchoice, multiple = TRUE),
                                          sliderInput('heatyear','Choose a year', min = 1990, max = 2018, value = 2018, step = 1),
-                                         sliderInput('cluster', 'Input the Number of Clusters', min = 2, max = 4, value = 3),
+                                         textInput('cluster', 'Input the Number of Clusters'),
                                          selectInput('scale','Choose Scale',choices = scale_choice),
                                          selectInput('hcluster', 'Choose Cluster Method', choices = hcluster_choice),
                                          selectInput('distribution', 'Choose Distribution Method', choices = distribution_choice),
@@ -200,7 +207,6 @@ ui<- bootstrapPage(
                tabPanel("Bubble plot",
                         mainPanel(
                             plotlyOutput(outputId = "bubbleplot")
-
                         )),
                tabPanel("Data",
                         numericInput("maxrows", "Rows to show", 25),
@@ -278,8 +284,9 @@ ui<- bootstrapPage(
                             tags$img(src = "vac_dark.png", width = "150px", height = "75px"), tags$img(src = "lshtm_dark.png", width = "150px", height = "75px")
                         )
                )
-) # finish navbarPage
-)# finish ui
+   ) # finish navbarPage
+) # finish ui
+
 
 
 
@@ -516,7 +523,7 @@ server <- function(input,output,session) {
     #_______ Writer: JI Xiao Jun ____________________________________________
     
     ## filter data6
-    updateSelectInput(session,inputId='country', label = 'Choose a Country',choices= c(sort(as.character(all_data$Country) %>% unique)))
+    
     extract_data <- reactive({
         all_data %>%
             filter(Country == input$country,
@@ -530,7 +537,7 @@ server <- function(input,output,session) {
             plot_ly(x = ~Year, y = ~HDI, color = ~Country, hoverinfo = "text",
                     text = ~paste(input$country, HDI)) %>%
             add_lines()%>%
-            layout(showlegend=TRUE)
+            layout(showlegend=FALSE, height =200, title = 'Human Development Index')
     })
     
     output$HDItrend <- renderPlotly({reactive_HDI()})
@@ -541,7 +548,7 @@ server <- function(input,output,session) {
             plot_ly(x = ~Year, y = ~Life_Expectancy_at_Birth, color = ~Country, hoverinfo = "text",
                     text = ~paste(input$country, Life_Expectancy_at_Birth)) %>%
             add_lines()%>%
-            layout(showlegend=TRUE)
+            layout(showlegend=FALSE, height =200, title = 'Life Expectancy at Birth')
     })
     output$LEtrend <- renderPlotly({reactive_LifeExpectancy()})
     
@@ -551,7 +558,7 @@ server <- function(input,output,session) {
             plot_ly(x = ~Year, y=~Expected_Years_of_Schooling, color = ~Country, hoverinfo = "text",
                     text = ~paste(input$country, Expected_Years_of_Schooling)) %>%
             add_lines()%>%
-            layout(showlegend=TRUE)
+            layout(showlegend=FALSE, height =200, title = 'Expected Years of Schooling')
     })
     output$EStrend <- renderPlotly({reactive_ExpectedSchooling()})
     
@@ -561,7 +568,7 @@ server <- function(input,output,session) {
             plot_ly(x = ~Year, y=~Mean_Years_of_Schooling, color = ~Country, hoverinfo = "text",
                     text = ~paste(input$country, Mean_Years_of_Schooling)) %>%
             add_lines()%>%
-            layout(showlegend=TRUE)
+            layout(showlegend=FALSE, height =200, title = 'Mean Years of Schooling')
     })
     output$MStrend <- renderPlotly({reactive_MeanSchooling()})
     
@@ -571,7 +578,7 @@ server <- function(input,output,session) {
             plot_ly(x = ~Year, y=~Gross_National_Income_per_capita, color = ~Country, hoverinfo = "text",
                     text = ~paste(input$country, Gross_National_Income_per_capita)) %>%
             add_lines()%>%
-            layout(showlegend=TRUE)
+            layout(legend = list(orientation = 'h'), height =200,  title = 'Gross National Income per capita')
     })
     output$GNItrend <- renderPlotly({reactive_GNI()})
     
@@ -613,7 +620,7 @@ server <- function(input,output,session) {
                   dist_method = input$distribution,
                   hclust_method = input$hcluster, 
                   seriate = input$seriate,
-                  k_row = input$cluster,
+                  #input$cluster,
                   colors = Blues,
                   Colv=NA,
                   #margins = c(10,50,50,NA),
@@ -667,15 +674,19 @@ server <- function(input,output,session) {
             layout(title = "Journey of All Countries in xxx", 
                    xaxis = list(title = input$dumbellindex, 
                                 tickfont = list(color = "#e6e6e6")), 
-                   yaxis = list(title = "Countries", tickfont = list(color = "#e6e6e6")), 
-                   plot_bgcolor = "#808080", paper_bgcolor ="#808080")
+                   yaxis = list(title = "Countries", tickfont = list(color = "#e6e6e6")))
     })
+  
+    #__________Page 5 : Bubble Plot _________________________________________
+    #__________Writer: Zhu Honglu ___________________________________________
+
     output$bubbleplot = renderPlotly({
         wbstats::wb(indicator = c("SP.DYN.LE00.IN", "NY.GDP.PCAP.CD", "SP.POP.TOTL"), 
                     country = "countries_only", startdate = 1990, enddate = 2018)  %>% 
             # pull down mapping of countries to regions and join
             dplyr::left_join(wbstats::wbcountries() %>% 
-                                 dplyr::select(iso3c, region)) %>% 
+                             dplyr::select(iso3c, region)) %>% 
+                             dplyr::select(iso3c, region)) %>% 
             # spread the three indicators
             tidyr::pivot_wider(id_cols = c("date", "country", "region"), names_from = indicator, values_from = value) %>% 
             # plot the data
