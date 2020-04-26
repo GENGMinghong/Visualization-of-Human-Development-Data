@@ -693,7 +693,7 @@ server <- function(input,output,session) {
                   dist_method = input$distribution,
                   hclust_method = input$hcluster, 
                   seriate = input$seriate,
-                  #input$cluster,
+                  k_row = as.numeric(input$cluster),
                   colors = Blues,
                   Colv=NA,
                   #margins = c(10,50,50,NA),
