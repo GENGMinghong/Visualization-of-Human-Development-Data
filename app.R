@@ -179,7 +179,7 @@ ui<- bootstrapPage(
                                        selectInput('yaxis','Choose an Index at y axis', choices = indexchoice, selected = "Gender_Inequality_Index"),
                                        selectInput('size','Choose an Index to represent size', choices = indexchoice, selected = "Total_GDP"),
                                        selectInput('color','Choose an Index to represent color', choices = colorchoice, selected = "Continent"),
-                                       sliderInput('bubbleyear','Choose a year', min = 1995, max = 2018, value = 2018, step = 5, animate = TRUE)
+                                       sliderInput('bubbleyear','Choose a year', min = 1995, max = 2018, value = 2018, step = 5, animate = TRUE),
                           ),
                           mainPanel(plotlyOutput('bubble'))
                         )
@@ -667,13 +667,13 @@ server <- function(input,output,session) {
             {heatmap <- all_data %>%
                         filter(Year == input$heatyear)%>%
                         column_to_rownames(var = "Country")%>%
-                        select(input$heatindex)}
+                        select(input$heatindex, c("Continent", "Region", "Level"))}
         else 
             {heatmap <- all_data %>%
                         filter(Year == input$heatyear) %>%
                         filter(Country %in% input$heatcountry) %>%
                         column_to_rownames(var = "Country") %>%
-                        select(input$heatindex)}
+                        select(input$heatindex, c("Continent", "Region", "Level"))}
         heatmaply(normalize(heatmap),
                   scale = input$scale,
                   dist_method = input$distribution,
