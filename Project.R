@@ -361,3 +361,20 @@ heatmap <- all_data %>%
             
   #select(Country,HDI,Gender_Development_Index,Gender_Inequality_Index)
 heatmap
+##=______________________________________
+dev.new()
+scatter_plot <- ggplotly(all_data %>% 
+  filter(Year == 2018) %>%
+  ggplot(aes(x = HDI, 
+             y = Gender_Development_Index, 
+             col = Region, 
+             size = Total_GDP,
+             text = Country)) + 
+  geom_point(alpha = 0.5) + 
+  theme_classic()+
+  geom_text(aes(x = 0.5, y= 0.5, label = Year), size = 10, color = 'lightgrey',family = 'Oswald'))
+
+  ggplotly()
+
+scatter_plot
+  
