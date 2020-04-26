@@ -160,23 +160,23 @@ ui<- bootstrapPage(
                    mainPanel(
                      tabsetPanel(
                        tabPanel('Human Development',
-                                plotlyOutput(outputId = "HDItrend", height = 280),
-                                plotlyOutput(outputId = 'IHDItrend', height =280)
+                                plotlyOutput(outputId = "HDItrend", height = 300),
+                                plotlyOutput(outputId = 'IHDItrend', height = 300)
                                 ),
                        tabPanel('Gender',
-                                plotlyOutput(outputId = "GDItrend", height = 280),
-                                plotlyOutput(outputId = "GIItrend", height = 280)
+                                plotlyOutput(outputId = "GDItrend", height = 300),
+                                plotlyOutput(outputId = "GIItrend", height = 300)
                                 ),
                        tabPanel('Education', 
-                                plotlyOutput(outputId = "EItrend", height = 280),
-                                plotlyOutput(outputId = 'IAEItrend', height = 280)
+                                plotlyOutput(outputId = "EItrend", height = 300),
+                                plotlyOutput(outputId = 'IAEItrend', height = 300)
                                 ),
                        tabPanel('Life Expectancy',
-                                plotlyOutput(outputId= 'LEItrend', height = 280),
-                                plotlyOutput(outputId = 'IALEtrend', height = 280)
+                                plotlyOutput(outputId= 'LEItrend', height = 300),
+                                plotlyOutput(outputId = 'IALEtrend', height = 300)
                                 ),
                        tabPanel('Poverty', 
-                                plotlyOutput(outputId = 'MPItrend', height = 280)
+                                plotlyOutput(outputId = 'MPItrend', height = 300)
                                 )
                        )
                      )
@@ -189,7 +189,7 @@ ui<- bootstrapPage(
                                        selectInput('xaxis','Choose an Index at x axis', choices = indexchoice, selected = "HDI"),
                                        selectInput('yaxis','Choose an Index at y axis', choices = indexchoice, selected = "Gender_Inequality_Index"),
                                        selectInput('size','Choose an Index to represent size', choices = indexchoice, selected = "Total_GDP"),
-                                       selectInput('color','Choose an Index to represent color', choices = colorchoice, selcted = "Continent"),
+                                       selectInput('color','Choose an Index to represent color', choices = colorchoice, selected = "Continent"),
                                        sliderInput('bubbleyear','Choose a year', min = 1995, max = 2018, value = 2018, step = 5, animate = TRUE)
                           ),
                           mainPanel(plotlyOutput('bubble'))
@@ -539,21 +539,84 @@ server <- function(input,output,session) {
     
     ## HDI trend plot
     reactive_HDI <- eventReactive(input$Search,{
-        extract_data()%>%
-            plot_ly(x = ~Year, y = ~HDI, color = ~Country) %>%
-            add_lines()%>%
-            layout(showlegend=FALSE, height =200, title = 'Human Development Index')
+      extract_data()%>%
+        plot_ly(x = ~Year, y = ~HDI, color = ~Country) %>%
+        add_lines()%>%
+        layout(showlegend=TRUE, title = 'Human Development Index')
     })
-    
     output$HDItrend <- renderPlotly({reactive_HDI()})
+    
+    ## IHDI trend plot
+    reactive_IHDI <- eventReactive(input$Search,{
+      extract_data()%>%
+        plot_ly(x = ~Year, y = ~Inequality_adjusted_HDI, color = ~Country) %>%
+        add_lines()%>%
+        layout(showlegend=TRUE, title = 'Inequality Adjusted Human Development Index')
+    })
+    output$IHDItrend <- renderPlotly({reactive_IHDI()})
+    
+    ## Gender Development trend plot
+    reactive_GDI <- eventReactive(input$Search,{
+      extract_data()%>%
+        plot_ly(x = ~Year, y = ~Gender_Development_Index, color = ~Country) %>%
+        add_lines()%>%
+        layout(showlegend=TRUE, title = 'Gender Development Index')
+    })
+    output$GDItrend <- renderPlotly({reactive_GDI()})
+    
+    ## Gender Inequality trend plot
+    reactive_GII <- eventReactive(input$Search,{
+      extract_data()%>%
+        plot_ly(x = ~Year, y = ~Gender_Inequality_Index, color = ~Country) %>%
+        add_lines()%>%
+        layout(showlegend=TRUE, title = 'Gender Inequality Index')
+    })
+    output$GIItrend <- renderPlotly({reactive_GII()})
+    
+    ## Education Index trend plot
+    reactive_EI <- eventReactive(input$Search,{
+      extract_data()%>%
+        plot_ly(x = ~Year, y = ~Education_Index, color = ~Country) %>%
+        add_lines()%>%
+        layout(showlegend=TRUE, title = 'Education Index')
+    })
+    output$EItrend <- renderPlotly({reactive_EI()})
+    
+    ## Education Index trend plot
+    reactive_IAEI <- eventReactive(input$Search,{
+      extract_data()%>%
+        plot_ly(x = ~Year, y = ~Inequality_adjusted_Education_Index, color = ~Country) %>%
+        add_lines()%>%
+        layout(showlegend=TRUE, title = 'Inequality adjusted Education Index')
+    })
+    output$IAEItrend <- renderPlotly({reactive_IAEI()})
     
     ## Life Expectancy trend plot
     reactive_LifeExpectancy <- eventReactive(input$Search,{
-        extract_data()%>%
-            plot_ly(x = ~Year, y = ~Life_Expectancy_at_Birth, color = ~Country) %>%
-            add_lines()%>%
-            layout(showlegend=FALSE, height =200, title = 'Life Expectancy at Birth')
+      extract_data()%>%
+        plot_ly(x = ~Year, y = ~Life_Expectancy_Index, color = ~Country) %>%
+        add_lines()%>%
+        layout(showlegend=TRUE, title = 'Life Expectancy Index')
     })
+    output$LEItrend <- renderPlotly({reactive_LifeExpectancy()})
+    
+    ## Inequality adjusted Life Expectancy trend plot
+    reactive_IALE <- eventReactive(input$Search,{
+      extract_data()%>%
+        plot_ly(x = ~Year, y = ~Inequality_adjusted_Life_Expectancy_Index, color = ~Country) %>%
+        add_lines()%>%
+        layout(showlegend=TRUE, title = 'Inequality adjusted Life Expectancy Index')
+    })
+    output$IALEtrend <- renderPlotly({reactive_IALE()}) 
+    
+    ## Poverty Index trend plot
+    reactive_MPI <- eventReactive(input$Search,{
+      extract_data()%>%
+        plot_ly(x = ~Year, y = ~Multidimensional_Poverty_Index, color = ~Country) %>%
+        add_lines()%>%
+        layout(showlegend=TRUE, title = 'Multidimensional Poverty Index')
+    })
+    output$MPItrend <- renderPlotly({reactive_MPI()})
     output$LEtrend <- renderPlotly({reactive_LifeExpectancy()})
     
     ## Expected Schooling trend plot
@@ -571,7 +634,7 @@ server <- function(input,output,session) {
         extract_data()%>%
             plot_ly(x = ~Year, y=~Mean_Years_of_Schooling, color = ~Country) %>%
             add_lines()%>%
-            layout(showlegend=FALSE, height =200, title = 'Mean Years of Schooling')
+            layout(showlegend=FALSE, title = 'Mean Years of Schooling')
     })
     output$MStrend <- renderPlotly({reactive_MeanSchooling()})
     
@@ -580,7 +643,7 @@ server <- function(input,output,session) {
         extract_data()%>%
             plot_ly(x = ~Year, y=~Gross_National_Income_per_capita, color = ~Country) %>%
             add_lines()%>%
-            layout(legend = list(orientation = 'h'), height =200,  title = 'Gross National Income per capita')
+            layout(showlegent = FALSE, title = 'Gross National Income per capita')
     })
     output$GNItrend <- renderPlotly({reactive_GNI()})
     
@@ -678,7 +741,7 @@ server <- function(input,output,session) {
                    yaxis = list(title = "Countries", tickfont = list(color = "#e6e6e6")))
     })
   
-    #__________Page 5 : Bubble Plot _________________________________________
+    #__________Page 5 : Scatter Plot ________________________________________
     #__________Writer: Zhu Honglu ___________________________________________
     output$bubble <- renderPlotly({
         
@@ -688,16 +751,16 @@ server <- function(input,output,session) {
         scatter_data <- all_data %>% 
             filter(Year == input$bubbleyear)
         
-        ggplotly(
-            ggplot(scatter_data, 
-                   aes_string(x = paste0("`", input$xaxis,"`"), 
-                              y = paste0("`",input$yaxis,"`"), 
-                              col = paste0("`",input$color,"`"), 
-                              size = paste0("`", input$size,"`"))) + 
-                geom_point(alpha = 0.5) + 
-                theme_classic()+
-                geom_text(aes(x = 0.5, y= 0.5, label = Year), size = 10, color = 'lightgrey',family = 'Oswald')
-               )
+      
+          scatter_plot <- ggplot(scatter_data, 
+                               aes_string(x = paste0("`", input$xaxis,"`"), 
+                                         y = paste0("`",input$yaxis,"`"), 
+                                         col = paste0("`",input$color,"`"), 
+                                         size = paste0("`", input$size,"`"))) + 
+                               geom_point(alpha = 0.5) + 
+                               theme_classic()+
+                               geom_text(aes(x = 0.5, y= 0.5, label = Year), size = 10, color = 'lightgrey',family = 'Oswald')
+          ggplotly(scatter_plot, tooltip = c(paste("Country : ",scatter_data$Country),input$xaxis, input$yaxis, input$color, input$size))
         
     })
     
