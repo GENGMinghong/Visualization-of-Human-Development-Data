@@ -35,19 +35,6 @@ worldcountry = geojson_read("data/50m.geojson", what = "sp")
 worldcountry@data$NAME_LONG[worldcountry@data$NAME_LONG %in% c('Taiwan','Macao')] <- 'China'
 all_data = read_csv('data/data_cleaned/All_data.csv')
 
-# set label content
-#labels <- sprintf(
-#    "<strong>%s</strong><br/> 
-#   Index: %g",
-#    worldCountry_HDI$NAME_LONG, worldCountry_HDI$HDI
-#) %>% lapply(htmltools::HTML)
-
-# set popups
-#popup = sprintf(
-#    "<strong>%g</strong><br/>",worldCountry_HDI$HDI
-#) %>% lapply(htmltools::HTML)
-
-
 # create basemap
 basemap = leaflet(worldcountry) %>% 
     addTiles() %>% 
@@ -56,7 +43,6 @@ basemap = leaflet(worldcountry) %>%
 # Prepare for HDI page
 names(all_data)[1]='Continent'
 head(all_data)
-
 
 # Prepare for choosing index
 indexchoice <- colnames(all_data[,6:ncol(all_data)])
@@ -72,12 +58,6 @@ seriate_choice <- c("OLO", "mean", "none", "GW")
 # Prepare for scatter plot
 colorchoice <- c('Continent','Region','Level')
 
-#######    DATA PRECESSING    #########
-# Extract Year from Table
-# min_year = min(HDI$Year)
-# max_year = 2018#max(HDI$year)
-
-
 ##### SHINY APP #####
 ui<- bootstrapPage(
     #shinythemes::themeSelector(),
@@ -88,7 +68,7 @@ ui<- bootstrapPage(
                             tags$head(includeCSS("styles.css")), 
                             leafletOutput("mymap",width = "100%", height = "100%"), # output World Map
                             absolutePanel(id = "controls", class = "panel panel-default",
-                                          top = 80, left = 20, width = 250, fixed=TRUE,
+                                          top = 80, left = 30, width = 250, fixed=TRUE,
                                           draggable = FALSE, height = "auto", # draggable 
                               
                                           h4(textOutput("HDI_text"), align = "right",style="color:#cc4c02"),
@@ -254,7 +234,7 @@ ui<- bootstrapPage(
                             ", in the research of Human Development Report.", tags$br(),
                             #tags$br(),
                             tags$h4("User Guide"),
-                            tags$h5("Indicator Mapper"),
+                            tags$h5("Indicator Map"),
                             "This indicator map provides a overview of the world to users. 
                             3 most important indicators are provided in this map, namely, Human Development Index, 
                             Gender Development Index and Gender Inequality Index. In the lower-right corner there is a 
@@ -272,21 +252,27 @@ ui<- bootstrapPage(
                             "Note: Once open this Shiny app, it will take about 30 seconds to 
                             finish the calculation of the page indicator map. And re-plotting this map requires equal time length."
                             ,tags$br(),tags$br(),
-                            tags$h5("HDI and its Components"),tags$br(),
+                            tags$h5("Indexes"),
                             "Human Development Index is composited of 4 components: Life Expectancy, Mean of Schooling Year, 
                             Expected Schooling Year and Gross National Income. In this page, the user can dig into the Human Development Index 
                             and explore more details. In the control panel, the user can choose a list of countries and a time-period. 
                             In the main panel, 5 tabs are provided. User can choose one of them to see the change of each aspect individually."
                             ,tags$br(),tags$br(),
-                            tags$h5("Correlation"),tags$br(),
+                            
+                            tags$h5("Scatter Plot"),
+                            "5 inputs can are controlled by the user in the side panel, namely, X axis, Y axis, the size and the color. 
+                            A template has been provided.",
+                            tags$br(),tags$br(),
+                            
+                            tags$h5("Correlation"),
                             "The design of this page is to use heatmap to reveal the correlation across a variety of indicators. For countries, 
                             user can choose any number of countries (can be all countries) to draw a heatmap. The choice of indexes is also flexible. 
                             In the slider bar, the input of year and number of clusters are changeable. Also we can choose the scale, cluster method, 
                             distribution method and seriate method."
                             ,tags$br(),tags$br(),
-                            tags$h5('Data'),tags$br(),
+                            tags$h5('Data'),
                             'In this page, the overview of the whole dataset is placed. Users can download the dataset as a CSV format file by 
-                            clicking the button 鈥淒ownload as CSV鈥?.'
+                            clicking the button \"download as CSV\".'
                             ,tags$br(),tags$br(),
             
                             tags$h4("Code"),
@@ -797,22 +783,6 @@ server <- function(input,output,session) {
         #    gganimate::transition_states(date, transition_length = 1, state_length = 1) +
         #    gganimate::ease_aes('cubic-in-out')
     #})
-    
-    # add formula
-    #output$formula <- renderUI({
-    #  withMathJax(helpText("$$\\text{Calculation of HDI: }X_n=X_{n-1}-\\varepsilon$$"))
-      #listcat <- c("Men","Ladies")
-      #value <- 15
-      #withMathJax(paste0("$$\\frac{",listcat[1], "\\cap ", listcat[2],"}{",listcat[1],"} =", value,"$$"))
-    #})
-    
-    #output$formula_HD <- renderUI({
-    #  withMathJax(helpText("$$\\text{Calculation of HDI: }X_n=X_{n-1}-\\varepsilon$$"))
-    #  })
-    
-    
-    
-    
 }
 
 
