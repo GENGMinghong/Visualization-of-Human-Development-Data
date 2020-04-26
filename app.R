@@ -151,7 +151,7 @@ ui<- bootstrapPage(
                #),
                #),
                tabPanel("Indexes",
-                 tags$head(tags$style(HTML("div.MathJax_Display{text-align: right !important; }"
+                 tags$head(tags$style(HTML("div.MathJax_Display{text-align: left !important; }"
                                            )
                                       )
                  ),
@@ -160,29 +160,32 @@ ui<- bootstrapPage(
                                 selectInput("country","Choose Countries", choices = unique(all_data$Country),selected = c('Singapore','China','India','United States'),multiple = TRUE),
                                 sliderInput("year",'choose a year range', min = 1990, max = 2018, value = c(1990,2018),step = 1),
                                 actionButton("Search", "Search"),
-                                withMathJax(helpText("$$\\text{Calculation of HDI: }X_n=X_{n-1}-\\varepsilon$$")),
                                 ),
                    mainPanel(
                      tabsetPanel(
                        tabPanel('Human Development',
                                 plotlyOutput(outputId = "HDItrend", height = 300),
-                                plotlyOutput(outputId = 'IHDItrend', height = 300)，
-								uiOutput("formula")
+                                plotlyOutput(outputId = 'IHDItrend', height = 300),
+                                #uiOutput("formula_HD")
                                 ),
                        tabPanel('Gender',
                                 plotlyOutput(outputId = "GDItrend", height = 300),
-                                plotlyOutput(outputId = "GIItrend", height = 300)
+                                plotlyOutput(outputId = "GIItrend", height = 300),
+                                #uiOutput("formula_Gender")
                                 ),
                        tabPanel('Education', 
                                 plotlyOutput(outputId = "EItrend", height = 300),
-                                plotlyOutput(outputId = 'IAEItrend', height = 300)
+                                plotlyOutput(outputId = 'IAEItrend', height = 300),
+                                #uiOutput("formula_Education")
                                 ),
                        tabPanel('Life Expectancy',
                                 plotlyOutput(outputId= 'LEItrend', height = 300),
-                                plotlyOutput(outputId = 'IALEtrend', height = 300)
+                                plotlyOutput(outputId = 'IALEtrend', height = 300),
+                                #uiOutput("formula_life_Expectancy")
                                 ),
                        tabPanel('Poverty', 
-                                plotlyOutput(outputId = 'MPItrend', height = 300)
+                                plotlyOutput(outputId = 'MPItrend', height = 300),
+                                #uiOutput("formula_Poverty")
                                 )
                        )
                      )
@@ -749,24 +752,39 @@ server <- function(input,output,session) {
   
     #__________Page 5 : Scatter Plot ________________________________________
     #__________Writer: Zhu Honglu ___________________________________________
-    output$bubble <- renderPlotly({
+    output$bubble <- renderPlot({
         
-        req(input$xaxis)
-        req(input$yaxis)
+        #req(input$xaxis)
+        #req(input$yaxis)
         
-        scatter_data <- all_data %>% 
-            filter(Year == input$bubbleyear)
-        
-      
-          scatter_plot <- ggplot(scatter_data, 
-                               aes_string(x = paste0("`", input$xaxis,"`"), 
-                                         y = paste0("`",input$yaxis,"`"), 
-                                         col = paste0("`",input$color,"`"), 
-                                         size = paste0("`", input$size,"`"))) + 
-                               geom_point(alpha = 0.5) + 
-                               theme_classic()+
-                               geom_text(aes(x = 0.5, y= 0.5, label = Year), size = 10, color = 'lightgrey',family = 'Oswald')
-          ggplotly(scatter_plot, tooltip = c(paste("Country : ",scatter_data$Country),input$xaxis, input$yaxis, input$color, input$size))
+        #scatter_plot <- all_data %>% 
+        #  filter(Year == input$bubbleyear) %>%
+        #  ggplot(#aes_string(x = paste0("`", input$xaxis,"`"), 
+                 #          y = paste0("`",input$yaxis,"`"), 
+                 #           col = paste0("`",input$color,"`"), 
+                 #          size = paste0("`", input$size,"`"),
+                 #            ),
+        #         aes(x = input$xaxis, 
+        #             y = input$yaxis, 
+        #             col = input$color, 
+        #             size = input$size,
+        #             text = Country)) + 
+        #  geom_point(alpha = 0.5) + 
+        #  theme_classic()+
+        #  geom_text(aes(x = 0.5, y= 0.5, label = Year), size = 10, color = 'lightgrey',family = 'Oswald') %>%
+        #  ggplotly()
+          #ggplotly(scatter_plot, tooltip = c(paste("Country : ",scatter_data$Country),input$xaxis, input$yaxis, input$color, input$size))
+          #ggplotly(scatter_plot, tooltip = c("text",input$xaxis, input$yaxis, input$color, input$size))
+        scatter_plot <- all_data %>% 
+                                   filter(Year == 2018) %>%
+                                   ggplot(aes(x = input$xaxis, 
+                                              y = input$yaxis, 
+                                              col = input$color, 
+                                              size = input$size,
+                                              text = Country)) + 
+                                   geom_point(alpha = 0.5) + 
+                                   theme_classic()+
+                                   geom_text(aes(x = 0.5, y= 0.5, label = Year), size = 10, color = 'lightgrey',family = 'Oswald')
         
     })
     
@@ -796,12 +814,20 @@ server <- function(input,output,session) {
     #})
     
     # add formula
-    output$formula <- renderUI({
-      withMathJax(helpText("$$\\text{Calculation of HDI: }X_n=X_{n-1}-\\varepsilon$$"))
+    #output$formula <- renderUI({
+    #  withMathJax(helpText("$$\\text{Calculation of HDI: }X_n=X_{n-1}-\\varepsilon$$"))
       #listcat <- c("Men","Ladies")
       #value <- 15
       #withMathJax(paste0("$$\\frac{",listcat[1], "\\cap ", listcat[2],"}{",listcat[1],"} =", value,"$$"))
-    })
+    #})
+    
+    #output$formula_HD <- renderUI({
+    #  withMathJax(helpText("$$\\text{Calculation of HDI: }X_n=X_{n-1}-\\varepsilon$$"))
+    #  })
+    
+    
+    
+    
 }
 
 
