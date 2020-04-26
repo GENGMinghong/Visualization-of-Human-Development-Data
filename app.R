@@ -744,24 +744,24 @@ server <- function(input,output,session) {
     #__________Page 5 : Scatter Plot ________________________________________
     #__________Writer: Zhu Honglu ___________________________________________
     output$bubble <- renderPlotly({
-        
-        req(input$xaxis)
-        req(input$yaxis)
-        
-        scatter_data <- all_data %>% 
-            filter(Year == input$bubbleyear)
-        
       
-          scatter_plot <- ggplot(scatter_data, 
-                               aes_string(x = paste0("`", input$xaxis,"`"), 
-                                         y = paste0("`",input$yaxis,"`"), 
-                                         col = paste0("`",input$color,"`"), 
-                                         size = paste0("`", input$size,"`"))) + 
-                               geom_point(alpha = 0.5) + 
-                               theme_classic()+
-                               geom_text(aes(x = 0.5, y= 0.5, label = Year), size = 10, color = 'lightgrey',family = 'Oswald')
-          ggplotly(scatter_plot, tooltip = c(paste("Country : ",scatter_data$Country),input$xaxis, input$yaxis, input$color, input$size))
-        
+      req(input$xaxis)
+      req(input$yaxis)
+      
+      scatter_data <- all_data %>% 
+        filter(Year == input$bubbleyear)
+      
+      ggplotly(
+        ggplot(scatter_data, 
+               aes_string(x = paste0("`", input$xaxis,"`"), 
+                          y = paste0("`",input$yaxis,"`"), 
+                          col = paste0("`",input$color,"`"), 
+                          size = paste0("`", input$size,"`"))) + 
+          geom_point(alpha = 0.5) + 
+          theme_classic()+
+          geom_text(aes(x = 0.5, y= 0.5, label = Year), size = 10, color = 'lightgrey',family = 'Oswald')
+      )
+      
     })
     
     #output$bubbleplot = renderPlotly({
