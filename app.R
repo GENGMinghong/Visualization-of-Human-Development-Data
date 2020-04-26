@@ -124,6 +124,7 @@ ui<- bootstrapPage(
                                           #width = 250, height = "auto",draggable = FALSE,
                                           selectInput(inputId = "select_map_of_a_country",
                                                       label = h4("Country of Scope:"), 
+                                                      selected = "Singapore",
                                                       choices = c("All country" = "All",
                                                                   sort(as.character(all_data$Country) %>% unique))),
                                           #uiOutput("secondselection")
@@ -149,34 +150,52 @@ ui<- bootstrapPage(
                #              )
                #),
                #),
-               tabPanel("HDI and its Components",
-                            sidebarLayout(
-                                sidebarPanel(top = 80, left = 20,# width = 250,unique(all_data$Country)
-                                             width = 3,
-                                             selectInput("country","Choose Countries", 
-                                                         choices = unique(all_data$Country),
-                                                         selected = c('Singapore','China','India','United States'),
-                                                         multiple = TRUE),
-                                             sliderInput("year",'choose a year range', min = 1990, max = 2018, value = c(1990,2018),step = 1),
-                                             actionButton("Search", "Search"),
-                                             actionButton("Help","About")
-                                             ),
-                                mainPanel(
-                                    tabsetPanel(
-                                        tabPanel(
-                                            absolutePanel(id = "HDI", plotlyOutput(outputId = "HDItrend"),class = "panel panel-default",
-                                                          top = 400, left = 20, width = 250, fixed=TRUE, 
-                                                          draggable = FALSE, height = "auto"),
-                                                 fluidRow(class = 'row1', 
-                                                          column(6, plotlyOutput(outputId = "LEtrend", height =200)),
-                                                          column(6, plotlyOutput(outputId = "MStrend", height =200))),
-                                                 fluidRow(class = 'row2', 
-                                                          column(6, plotlyOutput(outputId = "EStrend", height = 210)),
-                                                          column(6, plotlyOutput(outputId = "GNItrend", height = 210))))
-                                        )
-                                    )
+               tabPanel("Indexes",
+                 sidebarLayout(
+                   sidebarPanel(top = 80, left = 20, width = 3,
+                                selectInput("country","Choose Countries", choices = unique(all_data$Country),selected = c('Singapore','China','India','United States'),multiple = TRUE),
+                                sliderInput("year",'choose a year range', min = 1990, max = 2018, value = c(1990,2018),step = 1),
+                                actionButton("Search", "Search")
+                                ),
+                   mainPanel(
+                     tabsetPanel(
+                       tabPanel('Human Development',
+                                plotlyOutput(outputId = "HDItrend", height = 280),
+                                plotlyOutput(outputId = 'IHDItrend', height =280)
+                                ),
+                       tabPanel('Gender',
+                                plotlyOutput(outputId = "GDItrend", height = 280),
+                                plotlyOutput(outputId = "GIItrend", height = 280)
+                                ),
+                       tabPanel('Education', 
+                                plotlyOutput(outputId = "EItrend", height = 280),
+                                plotlyOutput(outputId = 'IAEItrend', height = 280)
+                                ),
+                       tabPanel('Life Expectancy',
+                                plotlyOutput(outputId= 'LEItrend', height = 280),
+                                plotlyOutput(outputId = 'IALEtrend', height = 280)
+                                ),
+                       tabPanel('Poverty', 
+                                plotlyOutput(outputId = 'MPItrend', height = 280)
                                 )
-                        ),
+                       )
+                     )
+                   )
+               ),
+               
+               tabPanel("Scatter plot",
+                        sidebarLayout(
+                          sidebarPanel(top = 80, left = 20, width = 3,
+                                       selectInput('xaxis','Choose an Index at x axis', choices = indexchoice, selected = "HDI"),
+                                       selectInput('yaxis','Choose an Index at y axis', choices = indexchoice, selected = "Gender_Inequality_Index"),
+                                       selectInput('size','Choose an Index to represent size', choices = indexchoice, selected = "Total_GDP"),
+                                       selectInput('color','Choose an Index to represent color', choices = colorchoice, selcted = "Continent"),
+                                       sliderInput('bubbleyear','Choose a year', min = 1995, max = 2018, value = 2018, step = 5, animate = TRUE)
+                          ),
+                          mainPanel(plotlyOutput('bubble'))
+                        )
+               ),
+               
                tabPanel("Correlation",
                         sidebarLayout(
                             sidebarPanel(top = 80, left = 20, width = 3,
@@ -211,17 +230,7 @@ ui<- bootstrapPage(
                #                         selectInput('dumbellindex','Choose Indexes', choices = indexchoice)),
                #              mainPanel(plotlyOutput('dumbbell'))
                #          )),
-               tabPanel("Bubble plot",
-                        sidebarLayout(
-                            sidebarPanel(top = 80, left = 20, width = 3,
-                                         selectInput('xaxis','Choose an Index at x axis', choices = indexchoice),
-                                         selectInput('yaxis','Choose an Index at y axis', choices = indexchoice),
-                                         selectInput('size','Choose an Index to represent size', choices = indexchoice),
-                                         selectInput('color','Choose an Index to represent color', choices = colorchoice),
-                                         sliderInput('bubbleyear','Choose a year', min = 1995, max = 2018, value = 2018, step = 5, animate = TRUE)
-                            ),
-                            mainPanel(plotlyOutput('bubble')
-                        )),
+              
                tabPanel("Data",
                         numericInput("maxrows", "Rows to show", 25),
                         verbatimTextOutput("rawtable"),
@@ -247,8 +256,8 @@ ui<- bootstrapPage(
                             This process will last for about 30 seconds.", tags$br(),tags$br(),
                             "The main map is designed as a choropleth map and colored with blue. 
                             The darker the color, the higher the value it stands for.",tags$br(),tags$br(),
-                            "There is a mini map in the upper right corner. In this map, user can 
-                            select a certain country of his/her interest and then the view of map will "fly" to 
+                            "There is a mini map in the upper right corner. In this map, user can
+                            select a certain country of his/her interest and then the view of map will \"fly\" to 
                             the country which is chosen by user. And the summarized information of this country 
                             in the selected year will appear under the mini map.",tags$br(),tags$br(),
                             "Note: Once open this Shiny app, it will take about 30 seconds to 
@@ -645,7 +654,7 @@ server <- function(input,output,session) {
     
     
     #______________Dumbbel Chart Page____________________________________________
-    #_______ Writer: JI XIAOJUN  ________________________________________________ 
+    #_______       Writer: JI XIAOJUN  __________________________________________
     
     # Prepare for Dumbbell chart
     output$dumbbell<-renderPlotly({
