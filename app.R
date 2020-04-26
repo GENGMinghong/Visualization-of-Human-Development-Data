@@ -151,17 +151,23 @@ ui<- bootstrapPage(
                #),
                #),
                tabPanel("Indexes",
+                 tags$head(tags$style(HTML("div.MathJax_Display{text-align: right !important; }"
+                                           )
+                                      )
+                 ),
                  sidebarLayout(
                    sidebarPanel(top = 80, left = 20, width = 3,
                                 selectInput("country","Choose Countries", choices = unique(all_data$Country),selected = c('Singapore','China','India','United States'),multiple = TRUE),
                                 sliderInput("year",'choose a year range', min = 1990, max = 2018, value = c(1990,2018),step = 1),
-                                actionButton("Search", "Search")
+                                actionButton("Search", "Search"),
+                                withMathJax(helpText("$$\\text{Calculation of HDI: }X_n=X_{n-1}-\\varepsilon$$")),
                                 ),
                    mainPanel(
                      tabsetPanel(
                        tabPanel('Human Development',
                                 plotlyOutput(outputId = "HDItrend", height = 280),
-                                plotlyOutput(outputId = 'IHDItrend', height =280)
+                                plotlyOutput(outputId = 'IHDItrend', height =280),
+                                uiOutput("formula"),
                                 ),
                        tabPanel('Gender',
                                 plotlyOutput(outputId = "GDItrend", height = 280),
@@ -189,7 +195,7 @@ ui<- bootstrapPage(
                                        selectInput('xaxis','Choose an Index at x axis', choices = indexchoice, selected = "HDI"),
                                        selectInput('yaxis','Choose an Index at y axis', choices = indexchoice, selected = "Gender_Inequality_Index"),
                                        selectInput('size','Choose an Index to represent size', choices = indexchoice, selected = "Total_GDP"),
-                                       selectInput('color','Choose an Index to represent color', choices = colorchoice, selcted = "Continent"),
+                                       selectInput('color','Choose an Index to represent color', choices = colorchoice, selected = "Continent"),
                                        sliderInput('bubbleyear','Choose a year', min = 1995, max = 2018, value = 2018, step = 5, animate = TRUE)
                           ),
                           mainPanel(plotlyOutput('bubble'))
@@ -725,6 +731,14 @@ server <- function(input,output,session) {
         #    gganimate::transition_states(date, transition_length = 1, state_length = 1) +
         #    gganimate::ease_aes('cubic-in-out')
     #})
+    
+    # add formula
+    output$formula <- renderUI({
+      withMathJax(helpText("$$\\text{Calculation of HDI: }X_n=X_{n-1}-\\varepsilon$$"))
+      #listcat <- c("Men","Ladies")
+      #value <- 15
+      #withMathJax(paste0("$$\\frac{",listcat[1], "\\cap ", listcat[2],"}{",listcat[1],"} =", value,"$$"))
+    })
 }
 
 
